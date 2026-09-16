@@ -9,25 +9,16 @@ const initialState = {
   users: [],
   profile: null,
   company: {
-    name: "WBM AUTO VIDROS",
-    tagline: "Seu parceiro em vidros automotivos e agrícolas",
-    phone: "(00) 97402-0556",
-    site: "https://autovidros.app/",
+    name: "",
+    tagline: "",
+    phone: "",
+    site: "",
     document: "",
     email: "",
     address: "",
     logo: ""
   },
-  clients: [
-    {
-      id: crypto.randomUUID(),
-      name: "Marquespan indústria de alimentos ltda",
-      document: "",
-      phone: "",
-      email: "",
-      address: ""
-    }
-  ],
+  clients: [],
   items: [],
   orders: [],
   finance: []
@@ -524,11 +515,21 @@ async function loadAdminOverview() {
         </td>
         <td>${escapeHtml(row.orders_count || 0)}</td>
         <td>${escapeHtml(formatAdminDate(row.updated_at))}</td>
+        <td class="admin-actions">
+          <button class="secondary-button" data-user-active="${escapeHtml(row.user_id)}" data-active="${row.active}" type="button">${row.active ? "Inativar" : "Ativar"}</button>
+          <button class="danger-button" data-user-delete="${escapeHtml(row.user_id)}" type="button">Excluir</button>
+        </td>
       </tr>
     `).join("")
-    : `<tr><td colspan="7">Nenhum usuário cadastrado.</td></tr>`;
+    : `<tr><td colspan="8">Nenhum usuário cadastrado.</td></tr>`;
   document.querySelectorAll("[data-user-plan]").forEach((select) => {
     select.addEventListener("change", () => updateUserPlan(select.dataset.userPlan, select.value));
+  });
+  document.querySelectorAll("[data-user-active]").forEach((button) => {
+    button.addEventListener("click", () => updateUserActive(button.dataset.userActive, button.dataset.active === "true"));
+  });
+  document.querySelectorAll("[data-user-delete]").forEach((button) => {
+    button.addEventListener("click", () => deleteUserAccount(button.dataset.userDelete));
   });
   els.adminStatus.textContent = `Atualizado em ${new Date().toLocaleString("pt-BR")}.`;
 }
@@ -553,6 +554,36 @@ async function updateUserPlan(userId, planCode) {
   if (error) {
     alert("Não foi possível atualizar o plano: " + error.message);
     loadAdminOverview();
+    return;
+  }
+  loadAdminOverview();
+}
+
+async function updateUserActive(userId, currentlyActive) {
+  const client = getSupabaseClient();
+  if (!client) return;
+  const action = currentlyActive ? "inativar" : "ativar";
+  if (!window.confirm(`Confirma ${action} este usuário?`)) return;
+
+  const { error } = await client.rpc("set_user_active", {
+    target_user_id: userId,
+    target_active: !currentlyActive
+  });
+  if (error) {
+    alert("Não foi possível alterar o acesso: " + error.message);
+    return;
+  }
+  loadAdminOverview();
+}
+
+async function deleteUserAccount(userId) {
+  const client = getSupabaseClient();
+  if (!client) return;
+  if (!window.confirm("Excluir este usuário permanentemente? A conta e todos os dados relacionados serão apagados.")) return;
+
+  const { error } = await client.rpc("delete_user_account", { target_user_id: userId });
+  if (error) {
+    alert("Não foi possível excluir o usuário: " + error.message);
     return;
   }
   loadAdminOverview();
@@ -627,6 +658,10 @@ async function loadStateFromSupabase(user) {
       state = {
         ...structuredClone(initialState),
         ...data.data,
+        company: {
+          ...structuredClone(initialState.company),
+          ...(data.data.company || {})
+        },
         sessionEmail: user.email || "",
         profile: currentProfile
       };
@@ -636,6 +671,11 @@ async function loadStateFromSupabase(user) {
       return true;
     }
 
+    state = {
+      ...structuredClone(initialState),
+      sessionEmail: user.email || "",
+      profile: currentProfile
+    };
     await loadItemsFromSupabase(user);
     await syncStateToSupabase();
     return true;
@@ -761,7 +801,7 @@ function showApp() {
   els.loginView.classList.add("hidden");
   els.appView.classList.remove("hidden");
   els.userEmailMenu.textContent = currentProfile?.full_name || state.sessionEmail;
-  showPage("dashboard");
+  showPage(state.company.name?.trim() ? "dashboard" : "settings");
   renderAll();
 }
 
@@ -773,6 +813,10 @@ function setLoginStatus(message, type) {
 }
 
 function showPage(page) {
+  if (!state.company?.name?.trim() && page !== "settings") {
+    page = "settings";
+  }
+
   if (page === "admin" && !isAdministrator()) {
     alert("Acesso restrito ao administrador.");
     return;

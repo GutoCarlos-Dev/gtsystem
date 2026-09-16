@@ -886,6 +886,19 @@ textarea {
   overflow-x: auto;
 }
 
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 190px;
+}
+
+.admin-actions button {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
