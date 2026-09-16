@@ -79,27 +79,25 @@ textarea:focus-visible {
   background: rgba(255, 255, 255, 0.98);
 }
 
-.login-brand {
+.provider-brand {
   display: flex;
   align-items: center;
+  gap: 14px;
   min-height: 86px;
 }
 
-.login-company-logo {
+.provider-brand strong {
   display: block;
-  width: min(100%, 320px);
-  height: 86px;
-  object-fit: contain;
-  object-position: left center;
+  color: #171217;
+  font-size: 1.35rem;
+  letter-spacing: 0.12em;
 }
 
-.login-company-name {
-  margin: 14px 0 0;
-  color: var(--ink);
-  font-size: 1.3rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.provider-brand span:not(.brand-mark) {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .brand-mark {

@@ -57,9 +57,6 @@ const els = {
   loginView: document.querySelector("#loginView"),
   appView: document.querySelector("#appView"),
   loginForm: document.querySelector("#loginForm"),
-  loginBrand: document.querySelector("#loginBrand"),
-  loginCompanyLogo: document.querySelector("#loginCompanyLogo"),
-  loginCompanyName: document.querySelector("#loginCompanyName"),
   loginUsername: document.querySelector("#loginUsername"),
     loginName: document.querySelector("#loginName"),
     loginNameField: document.querySelector("#loginNameField"),
@@ -797,7 +794,6 @@ function showPage(page) {
 
 function renderAll() {
   els.companyNameMenu.textContent = state.company.name || "Gerador de OS";
-  renderLoginBrand();
   renderCompanyLogoMenu();
   renderClientOptions();
   renderDashboard();
@@ -807,19 +803,6 @@ function renderAll() {
   renderItemOptions();
   renderFinanceList();
   renderOrderPreview();
-}
-
-function renderLoginBrand() {
-  const hasLogo = Boolean(state.company.logo);
-  els.loginCompanyLogo.classList.toggle("hidden", !hasLogo);
-  els.loginBrand.querySelector(".brand-mark").classList.toggle("hidden", hasLogo);
-  els.loginCompanyName.textContent = state.company.name || "GTSYSTEM";
-  if (hasLogo) {
-    els.loginCompanyLogo.src = state.company.logo;
-    els.loginCompanyLogo.alt = `Logo de ${state.company.name || "empresa"}`;
-  } else {
-    els.loginCompanyLogo.removeAttribute("src");
-  }
 }
 
 function renderCompanyLogoMenu() {
