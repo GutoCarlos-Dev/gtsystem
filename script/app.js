@@ -454,11 +454,11 @@ async function openAuthenticatedApp(user) {
 }
 
 function isAdministrator() {
-  return ["admin", "administrador"].includes(String(currentProfile?.role || "").toLowerCase());
+  return ["admin", "administrador"].includes(String(currentProfile?.role || "").trim().toLowerCase());
 }
 
 function setAdminAccess(profile) {
-  const allowed = ["admin", "administrador"].includes(String(profile?.role || "").toLowerCase());
+  const allowed = ["admin", "administrador"].includes(String(profile?.role || "").trim().toLowerCase());
   els.adminNavItem.classList.toggle("hidden", !allowed);
   if (allowed) loadAdminOverview();
 }

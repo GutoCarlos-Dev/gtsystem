@@ -160,7 +160,7 @@ as $$
     select 1
     from public.os_profiles admin
     where admin.id = auth.uid()
-      and lower(admin.role) in ('admin', 'administrador')
+      and lower(trim(admin.role)) in ('admin', 'administrador')
       and admin.active = true
   )
   order by coalesce(nullif(d.data -> 'company' ->> 'name', ''), 'Sem empresa'), p.full_name;
@@ -169,7 +169,11 @@ $$;
 revoke all on function public.get_admin_overview() from public;
 grant execute on function public.get_admin_overview() to authenticated;
 
--- Depois de criar a conta do responsável, promova-a uma única vez:
+-- Para liberar o painel administrativo, execute com o e-mail real do responsável:
 -- update public.os_profiles
--- set role = 'administrador', updated_at = now()
--- where email = 'responsavel@gerador-os.local';
+-- set role = 'administrador', active = true, updated_at = now()
+-- where lower(trim(email)) = lower(trim('SEU_EMAIL_DE_LOGIN'));
+
+-- Para conferir antes de promover:
+-- select email, role, active from public.os_profiles
+-- where lower(trim(email)) = lower(trim('SEU_EMAIL_DE_LOGIN'));
