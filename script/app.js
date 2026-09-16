@@ -33,6 +33,7 @@ const initialState = {
 
 let state = loadState();
 let draftOrderId = null;
+let authMode = "login";
 
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -44,7 +45,18 @@ const els = {
   appView: document.querySelector("#appView"),
   loginForm: document.querySelector("#loginForm"),
   loginEmail: document.querySelector("#loginEmail"),
-  loginStatus: document.querySelector("#loginStatus"),
+    loginName: document.querySelector("#loginName"),
+    loginNameField: document.querySelector("#loginNameField"),
+    loginPassword: document.querySelector("#loginPassword"),
+    loginPasswordField: document.querySelector("#loginPasswordField"),
+    loginPasswordConfirm: document.querySelector("#loginPasswordConfirm"),
+    loginPasswordConfirmField: document.querySelector("#loginPasswordConfirmField"),
+    loginSubmitButton: document.querySelector("#loginSubmitButton"),
+    authDescription: document.querySelector("#authDescription"),
+    forgotPasswordButton: document.querySelector("#forgotPasswordButton"),
+    magicLinkButton: document.querySelector("#magicLinkButton"),
+    togglePasswordButton: document.querySelector("#togglePasswordButton"),
+    loginStatus: document.querySelector("#loginStatus"),
   logoutButton: document.querySelector("#logoutButton"),
   menuToggle: document.querySelector("#menuToggle"),
   sidebar: document.querySelector(".sidebar"),
@@ -106,8 +118,16 @@ function wireEvents() {
     const email = els.loginEmail.value.trim().toLowerCase();
     if (!email) return;
 
-    await requestSupabaseLogin(email);
+      await submitAuthForm();
   });
+
+    document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+      button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
+    });
+
+    els.forgotPasswordButton.addEventListener("click", () => setAuthMode("recovery"));
+    els.magicLinkButton.addEventListener("click", () => requestSupabaseLogin(els.loginEmail.value.trim().toLowerCase()));
+    els.togglePasswordButton.addEventListener("click", togglePasswordVisibility);
 
   els.logoutButton.addEventListener("click", async () => {
     const client = getSupabaseClient();
@@ -150,6 +170,10 @@ function wireEvents() {
   const client = getSupabaseClient();
   if (client) {
     client.auth.onAuthStateChange((event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setAuthMode("recovery-update");
+          return;
+        }
       if (event === "SIGNED_IN" && session?.user) {
         setTimeout(() => openAuthenticatedApp(session.user), 0);
       }
@@ -250,6 +274,119 @@ async function requestSupabaseLogin(email) {
   return true;
 }
 
+async function submitAuthForm() {
+  const email = els.loginEmail.value.trim().toLowerCase();
+  if (!email) return;
+
+  if (authMode === "recovery") {
+    await requestSupabasePasswordReset(email);
+    return;
+  }
+
+  if (authMode === "recovery-update") {
+    if (els.loginPassword.value !== els.loginPasswordConfirm.value) {
+      setLoginStatus("As senhas não conferem.", "error");
+      return;
+    }
+    await updateSupabasePassword(els.loginPassword.value);
+    return;
+  }
+
+  if (authMode === "signup") {
+    if (els.loginPassword.value !== els.loginPasswordConfirm.value) {
+      setLoginStatus("As senhas não conferem.", "error");
+      return;
+    }
+    await requestSupabaseSignup(email, els.loginPassword.value, els.loginName.value.trim());
+    return;
+  }
+
+  await requestSupabasePasswordLogin(email, els.loginPassword.value);
+}
+
+async function requestSupabasePasswordLogin(email, password) {
+  const client = getSupabaseClient();
+  if (!client) {
+    setLoginStatus(getSupabaseConfigError(), "error");
+    return false;
+  }
+
+  setLoginStatus("Validando acesso...", "");
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  if (error) {
+    setLoginStatus(getSupabaseAuthErrorMessage(error), "error");
+    return false;
+  }
+  return true;
+}
+
+async function requestSupabaseSignup(email, password, fullName) {
+  const client = getSupabaseClient();
+  if (!client) {
+    setLoginStatus(getSupabaseConfigError(), "error");
+    return false;
+  }
+
+  setLoginStatus("Criando sua conta...", "");
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: fullName },
+      emailRedirectTo: getAuthRedirectUrl()
+    }
+  });
+
+  if (error) {
+    setLoginStatus(getSupabaseAuthErrorMessage(error), "error");
+    return false;
+  }
+
+  if (data.session?.user) {
+    await openAuthenticatedApp(data.session.user);
+  } else {
+    setLoginStatus("Cadastro criado. Confirme seu e-mail para liberar o acesso.", "success");
+  }
+  return true;
+}
+
+async function requestSupabasePasswordReset(email) {
+  const client = getSupabaseClient();
+  if (!client) {
+    setLoginStatus(getSupabaseConfigError(), "error");
+    return false;
+  }
+
+  setLoginStatus("Enviando instruções...", "");
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: getAuthRedirectUrl()
+  });
+  if (error) {
+    setLoginStatus(getSupabaseAuthErrorMessage(error), "error");
+    return false;
+  }
+  setLoginStatus("Confira seu e-mail para redefinir a senha.", "success");
+  return true;
+}
+
+async function updateSupabasePassword(password) {
+  const client = getSupabaseClient();
+  if (!client) {
+    setLoginStatus(getSupabaseConfigError(), "error");
+    return false;
+  }
+
+  setLoginStatus("Atualizando sua senha...", "");
+  const { error } = await client.auth.updateUser({ password });
+  if (error) {
+    setLoginStatus(getSupabaseAuthErrorMessage(error), "error");
+    return false;
+  }
+  setAuthMode("login");
+  setLoginStatus("Senha atualizada. Você já pode entrar.", "success");
+  return true;
+}
+
 function getAuthRedirectUrl() {
   return supabaseConfig.siteUrl || `${window.location.origin}${window.location.pathname}`;
 }
@@ -263,6 +400,60 @@ function getSupabaseLoginErrorMessage(error) {
   }
 
   return error?.message || "Não foi possível enviar o link de acesso.";
+}
+
+function getSupabaseAuthErrorMessage(error) {
+  const errorText = `${error?.message || ""} ${error?.code || ""}`.toLowerCase();
+  if (errorText.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
+  if (errorText.includes("user already registered")) return "Este e-mail já está cadastrado. Entre ou recupere sua senha.";
+  if (errorText.includes("password should be at least")) return "A senha precisa ter pelo menos 6 caracteres.";
+  return getSupabaseLoginErrorMessage(error);
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const isSignup = mode === "signup";
+  const isRecovery = mode === "recovery";
+  const isRecoveryUpdate = mode === "recovery-update";
+  const isLogin = mode === "login";
+  const isPasswordMode = isLogin || isSignup || isRecoveryUpdate;
+
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    const active = button.dataset.authMode === mode || (isRecovery || isRecoveryUpdate) && button.dataset.authMode === "login";
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+
+  els.authDescription.textContent = isSignup
+    ? "Crie seu acesso em poucos segundos e comece a organizar suas ordens de serviço."
+    : isRecoveryUpdate
+      ? "Escolha uma nova senha para voltar ao sistema."
+      : isRecovery
+        ? "Informe seu e-mail para receber o link de recuperação."
+        : "Entre com seu e-mail e senha para abrir seu perfil de trabalho.";
+  els.loginNameField.classList.toggle("hidden", !isSignup);
+  els.loginName.classList.toggle("hidden", !isSignup);
+  els.loginName.required = isSignup;
+  els.loginPasswordField.classList.toggle("hidden", !isPasswordMode);
+  els.loginPassword.classList.toggle("hidden", !isPasswordMode);
+  els.togglePasswordButton.classList.toggle("hidden", !isPasswordMode);
+  els.loginPassword.required = isPasswordMode;
+  els.loginPasswordConfirmField.classList.toggle("hidden", !(isSignup || isRecoveryUpdate));
+  els.loginPasswordConfirm.classList.toggle("hidden", !(isSignup || isRecoveryUpdate));
+  els.loginPasswordConfirm.required = isSignup || isRecoveryUpdate;
+  els.loginPasswordField.textContent = isRecoveryUpdate ? "Nova senha" : "Senha";
+  els.loginPassword.autocomplete = isLogin ? "current-password" : "new-password";
+  els.loginSubmitButton.textContent = isSignup ? "Criar minha conta" : isRecoveryUpdate ? "Salvar nova senha" : isRecovery ? "Enviar link" : "Entrar";
+  els.forgotPasswordButton.classList.toggle("hidden", !isLogin);
+  els.magicLinkButton.classList.toggle("hidden", !isLogin);
+  setLoginStatus(isSignup ? "Use uma senha com pelo menos 6 caracteres." : isRecoveryUpdate ? "Digite e confirme a nova senha." : isRecovery ? "O link será enviado para o e-mail informado." : "Use seu e-mail e senha cadastrados.", "");
+}
+
+function togglePasswordVisibility() {
+  const isPassword = els.loginPassword.type === "password";
+  els.loginPassword.type = isPassword ? "text" : "password";
+  els.togglePasswordButton.textContent = isPassword ? "Ocultar" : "Mostrar";
+  els.togglePasswordButton.setAttribute("aria-label", isPassword ? "Ocultar senha" : "Mostrar senha");
 }
 
 async function openAuthenticatedApp(user) {

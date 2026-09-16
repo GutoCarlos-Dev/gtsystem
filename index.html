@@ -12,15 +12,30 @@
         <div class="brand-mark" aria-hidden="true">OS</div>
         <p class="eyebrow">Gestão de serviços</p>
         <h1 id="loginTitle">Acesse sua área de trabalho</h1>
-        <p class="login-copy">Informe seu e-mail para validar o acesso no Supabase e abrir seu perfil de trabalho.</p>
+        <p id="authDescription" class="login-copy">Entre com seu e-mail e senha para abrir seu perfil de trabalho.</p>
 
         <form id="loginForm" class="login-form">
-          <label for="loginEmail">E-mail de acesso</label>
-          <div class="email-row">
-            <input id="loginEmail" name="email" type="email" autocomplete="email" placeholder="usuario@empresa.com.br" required>
-            <button type="submit">Entrar</button>
+          <div class="auth-mode-list" role="tablist" aria-label="Opções de acesso">
+            <button class="auth-mode active" data-auth-mode="login" type="button" role="tab" aria-selected="true">Entrar</button>
+            <button class="auth-mode" data-auth-mode="signup" type="button" role="tab" aria-selected="false">Criar conta</button>
           </div>
-          <span id="loginStatus" class="hint" aria-live="polite">Você receberá um link de acesso no e-mail informado.</span>
+          <label id="loginNameField" class="hidden" for="loginName">Nome completo</label>
+          <input id="loginName" class="hidden" name="name" type="text" autocomplete="name" placeholder="Seu nome completo">
+          <label for="loginEmail">E-mail de acesso</label>
+          <input id="loginEmail" name="email" type="email" autocomplete="email" placeholder="usuario@empresa.com.br" required>
+          <label id="loginPasswordField" for="loginPassword">Senha</label>
+          <div class="password-row">
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Mínimo de 6 caracteres" minlength="6" required>
+            <button id="togglePasswordButton" class="password-toggle" type="button" aria-label="Mostrar senha">Mostrar</button>
+          </div>
+          <label id="loginPasswordConfirmField" class="hidden" for="loginPasswordConfirm">Confirmar senha</label>
+          <input id="loginPasswordConfirm" class="hidden" name="passwordConfirm" type="password" autocomplete="new-password" placeholder="Repita a senha" minlength="6">
+          <button id="loginSubmitButton" class="auth-submit" type="submit">Entrar</button>
+          <div class="auth-links">
+            <button id="forgotPasswordButton" type="button">Esqueci minha senha</button>
+            <button id="magicLinkButton" type="button">Entrar por link de e-mail</button>
+          </div>
+          <span id="loginStatus" class="hint" aria-live="polite">Use seu e-mail e senha cadastrados.</span>
         </form>
       </section>
 

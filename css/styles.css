@@ -175,17 +175,20 @@ textarea {
   resize: vertical;
 }
 
-.email-row {
+.email-row,
+.password-row {
   display: flex;
   gap: 10px;
   margin-top: 8px;
 }
 
-.email-row input {
+.email-row input,
+.password-row input {
   flex: 1;
 }
 
 .email-row button,
+.password-row button,
 .form-actions button,
 .quick-actions button {
   min-height: 46px;
@@ -194,6 +197,66 @@ textarea {
   color: #fff;
   background: var(--primary);
   font-weight: 800;
+}
+
+.auth-mode-list {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 22px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.auth-mode,
+.auth-links button,
+.password-toggle {
+  color: var(--muted);
+  background: transparent;
+  font-weight: 700;
+}
+
+.auth-mode {
+  padding: 8px 12px;
+  border-bottom: 2px solid transparent;
+}
+
+.auth-mode.active {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.auth-submit {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 18px;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--primary);
+  font-weight: 800;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.auth-links button {
+  padding: 0;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.auth-links button:hover,
+.password-toggle:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.password-toggle {
+  min-width: 70px;
+  padding: 0 8px;
 }
 
 .hint {
