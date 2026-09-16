@@ -636,8 +636,6 @@ function renderCompanyLogoMenu() {
 
 function setTodayDefaults() {
   const today = new Date().toISOString().slice(0, 10);
-  document.querySelector("#startDate").value = today;
-  document.querySelector("#dueDate").value = today;
   document.querySelector("#financeDueDate").value = today;
 }
 
@@ -737,9 +735,10 @@ function renderClientOptions() {
   const options = state.clients
     .map((client) => `<option value="${escapeHtml(client.id)}">${escapeHtml(client.name)}</option>`)
     .join("");
-  const fallback = `<option value="">Cadastre um cliente primeiro</option>`;
-  els.orderClient.innerHTML = options || fallback;
-  els.financeClient.innerHTML = options || fallback;
+  const clientPlaceholder = `<option value="" selected>${options ? "Selecione o cliente" : "Cadastre um cliente primeiro"}</option>`;
+  const financeFallback = `<option value="">Cadastre um cliente primeiro</option>`;
+  els.orderClient.innerHTML = clientPlaceholder + options;
+  els.financeClient.innerHTML = options || financeFallback;
 }
 
 function nextOrderNumber() {
@@ -800,7 +799,6 @@ function saveOrder(event) {
 
 function resetOrderForm() {
   els.orderForm.reset();
-  setTodayDefaults();
   document.querySelector("#orderNumberLabel").textContent = nextOrderNumber();
 }
 

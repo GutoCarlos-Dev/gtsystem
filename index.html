@@ -152,50 +152,51 @@
                     <option>Concluída</option>
                     <option>Cancelada</option>
                   </select>
-                </label>
+                    <select id="orderClient" required></select>
                 <label>Prioridade
                   <select id="orderPriority">
                     <option>Média</option>
-                    <option>Baixa</option>
+                      <option value="" selected>Selecione o status</option>
+                      <option value="Aberta">Aberta</option>
                     <option>Alta</option>
                     <option>Urgente</option>
                   </select>
                 </label>
                 <label>Placa
                   <input id="vehiclePlate" type="text" placeholder="ABC-1234">
-                </label>
+                      <option value="" selected>Selecione a prioridade</option>
                 <label>Tipo do veículo
                   <input id="vehicleType" type="text" placeholder="Caminhão">
                 </label>
                 <label>Modelo
                   <input id="vehicleModel" type="text" placeholder="Accelo">
-                </label>
+                    <input id="vehiclePlate" type="text">
                 <label>KM / Identificação
                   <input id="vehicleKm" type="text" placeholder="873029">
-                </label>
+                    <input id="vehicleType" type="text">
                 <label>Data de entrada
                   <input id="startDate" type="date" required>
-                </label>
+                    <input id="vehicleModel" type="text">
                 <label>Data prevista
                   <input id="dueDate" type="date">
-                </label>
+                    <input id="vehicleKm" type="text">
                 <label>Data de conclusão
                   <input id="finishDate" type="date">
                 </label>
                 <label>Valor
-                  <input id="orderValue" type="number" min="0" step="0.01" placeholder="760.00">
+                  <input id="orderValue" type="number" min="0" step="0.01">
                 </label>
                 <label>Serviços realizados
-                  <input id="servicesDone" type="text" placeholder="Instalação / troca / reparo">
+                  <input id="servicesDone" type="text">
                 </label>
                 <label>Peças / vidros
-                  <input id="partsUsed" type="text" placeholder="Peças de reposição">
+                  <input id="partsUsed" type="text">
                 </label>
                 <label class="wide">Descrição do serviço
-                  <textarea id="serviceDescription" rows="4" placeholder="01 vidro porta Esq original - R$ 640,00&#10;01 guia vidro - R$ 120,00"></textarea>
+                  <textarea id="serviceDescription" rows="4"></textarea>
                 </label>
                 <label class="wide">Observações
-                  <textarea id="orderNotes" rows="3" placeholder="Pedido, responsável, condições de entrega..."></textarea>
+                  <textarea id="orderNotes" rows="3"></textarea>
                 </label>
               </div>
               <div class="form-actions">
