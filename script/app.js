@@ -34,6 +34,7 @@ const initialState = {
 let state = loadState();
 let draftOrderId = null;
 let authMode = "login";
+let clientBeingEditedId = null;
 
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -66,6 +67,8 @@ const els = {
   orderClient: document.querySelector("#orderClient"),
   financeClient: document.querySelector("#financeClient"),
   clientForm: document.querySelector("#clientForm"),
+  clientSubmitButton: document.querySelector("#clientSubmitButton"),
+  cancelClientEditButton: document.querySelector("#cancelClientEditButton"),
   searchCnpjButton: document.querySelector("#searchCnpjButton"),
   cnpjSearchStatus: document.querySelector("#cnpjSearchStatus"),
   settingsForm: document.querySelector("#settingsForm"),
@@ -155,6 +158,7 @@ function wireEvents() {
   });
 
   els.clientForm.addEventListener("submit", saveClient);
+  els.cancelClientEditButton.addEventListener("click", resetClientForm);
   els.searchCnpjButton.addEventListener("click", searchCnpj);
   els.settingsForm.addEventListener("submit", saveSettings);
   els.financeForm.addEventListener("submit", saveFinance);
@@ -740,18 +744,64 @@ function formatDate(date) {
 
 function saveClient(event) {
   event.preventDefault();
-  state.clients.unshift({
-    id: crypto.randomUUID(),
+  const client = {
+    id: clientBeingEditedId || crypto.randomUUID(),
     name: valueOf("clientName"),
     document: valueOf("clientDocument"),
     phone: valueOf("clientPhone"),
     email: valueOf("clientEmail"),
     address: valueOf("clientAddress")
-  });
+  };
 
-  els.clientForm.reset();
+  if (clientBeingEditedId) {
+    const clientIndex = state.clients.findIndex((item) => item.id === clientBeingEditedId);
+    if (clientIndex >= 0) state.clients[clientIndex] = client;
+  } else {
+    state.clients.unshift(client);
+  }
+
+  resetClientForm();
   saveState();
   renderAll();
+}
+
+function editClient(clientId) {
+  const client = state.clients.find((item) => item.id === clientId);
+  if (!client) return;
+
+  clientBeingEditedId = client.id;
+  setValue("clientName", client.name);
+  setValue("clientDocument", client.document);
+  setValue("clientPhone", client.phone);
+  setValue("clientEmail", client.email);
+  setValue("clientAddress", client.address);
+  els.clientSubmitButton.textContent = "Atualizar cliente";
+  els.cancelClientEditButton.classList.remove("hidden");
+  document.querySelector("#clientName").focus();
+}
+
+function deleteClient(clientId) {
+  const client = state.clients.find((item) => item.id === clientId);
+  if (!client) return;
+
+  const hasOrders = state.orders.some((order) => order.clientId === clientId);
+  const warning = hasOrders
+    ? `A empresa "${client.name}" possui OS vinculadas. Excluir mesmo assim?`
+    : `Excluir a empresa "${client.name}"?`;
+  if (!window.confirm(warning)) return;
+
+  state.clients = state.clients.filter((item) => item.id !== clientId);
+  if (clientBeingEditedId === clientId) resetClientForm();
+  saveState();
+  renderAll();
+}
+
+function resetClientForm() {
+  clientBeingEditedId = null;
+  els.clientForm.reset();
+  els.clientSubmitButton.textContent = "Salvar cliente";
+  els.cancelClientEditButton.classList.add("hidden");
+  setCnpjStatus("", "");
 }
 
 async function searchCnpj() {
@@ -898,8 +948,26 @@ function renderOrdersTable() {
 
 function renderClientsList() {
   document.querySelector("#clientsList").innerHTML = state.clients.length
-    ? state.clients.map((client) => listCard(client.name, `${client.document || "Sem documento"} • ${client.phone || "Sem telefone"}`)).join("")
+    ? state.clients.map((client) => `
+      <article class="list-card client-list-card">
+        <div>
+          <strong>${escapeHtml(client.name)}</strong>
+          <span>${escapeHtml(`${client.document || "Sem documento"} • ${client.phone || "Sem telefone"}`)}</span>
+        </div>
+        <div class="list-card-actions">
+          <button class="secondary-button" data-client-edit="${escapeHtml(client.id)}" type="button">Editar</button>
+          <button class="danger-button" data-client-delete="${escapeHtml(client.id)}" type="button">Excluir</button>
+        </div>
+      </article>
+    `).join("")
     : empty("Nenhum cliente cadastrado.");
+
+  document.querySelectorAll("[data-client-edit]").forEach((button) => {
+    button.addEventListener("click", () => editClient(button.dataset.clientEdit));
+  });
+  document.querySelectorAll("[data-client-delete]").forEach((button) => {
+    button.addEventListener("click", () => deleteClient(button.dataset.clientDelete));
+  });
 }
 
 function renderFinanceList() {
