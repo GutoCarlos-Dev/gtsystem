@@ -242,12 +242,23 @@ async function requestSupabaseLogin(email) {
   });
 
   if (error) {
-    setLoginStatus(error.message || "Não foi possível enviar o link de acesso.", "error");
+    setLoginStatus(getSupabaseLoginErrorMessage(error), "error");
     return false;
   }
 
   setLoginStatus("Link enviado. Abra seu e-mail e confirme o acesso.", "success");
   return true;
+}
+
+function getSupabaseLoginErrorMessage(error) {
+  const errorText = `${error?.message || ""} ${error?.code || ""}`.toLowerCase();
+  const isRateLimited = error?.status === 429 || errorText.includes("rate limit") || errorText.includes("too many requests");
+
+  if (isRateLimited) {
+    return "O Supabase atingiu o limite temporário de envio de e-mails. Aguarde alguns minutos antes de tentar novamente ou configure um provedor SMTP próprio no painel do Supabase.";
+  }
+
+  return error?.message || "Não foi possível enviar o link de acesso.";
 }
 
 async function openAuthenticatedApp(user) {
