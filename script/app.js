@@ -65,6 +65,8 @@ const els = {
   pageTitle: document.querySelector("#pageTitle"),
   userEmailMenu: document.querySelector("#userEmailMenu"),
   companyNameMenu: document.querySelector("#companyNameMenu"),
+  companyLogoMenu: document.querySelector("#companyLogoMenu"),
+  companyLogoMenuImage: document.querySelector("#companyLogoMenuImage"),
   adminNavItem: document.querySelector("#adminNavItem"),
   refreshAdminButton: document.querySelector("#refreshAdminButton"),
   adminUsersMetric: document.querySelector("#adminUsersMetric"),
@@ -611,12 +613,25 @@ function showPage(page) {
 
 function renderAll() {
   els.companyNameMenu.textContent = state.company.name || "Gerador de OS";
+  renderCompanyLogoMenu();
   renderClientOptions();
   renderDashboard();
   renderOrdersTable();
   renderClientsList();
   renderFinanceList();
   renderOrderPreview();
+}
+
+function renderCompanyLogoMenu() {
+  const hasLogo = Boolean(state.company.logo);
+  els.companyLogoMenuImage.classList.toggle("hidden", !hasLogo);
+  els.companyLogoMenu.querySelector(".brand-mark").classList.toggle("hidden", hasLogo);
+  if (hasLogo) {
+    els.companyLogoMenuImage.src = state.company.logo;
+    els.companyLogoMenuImage.alt = `Logo de ${state.company.name || "empresa"}`;
+  } else {
+    els.companyLogoMenuImage.removeAttribute("src");
+  }
 }
 
 function setTodayDefaults() {

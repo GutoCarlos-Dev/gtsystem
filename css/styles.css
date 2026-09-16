@@ -342,14 +342,32 @@ textarea {
 
 .sidebar-brand {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
   align-items: center;
   margin-bottom: 28px;
 }
 
-.sidebar-brand span:not(.brand-mark) {
+.sidebar-logo-wrap {
+  display: grid;
+  min-height: 54px;
+  place-items: center;
+}
+
+.sidebar-logo {
   display: block;
-  max-width: 170px;
+  width: 150px;
+  height: 76px;
+  object-fit: contain;
+}
+
+.sidebar-brand-info {
+  width: 100%;
+  text-align: center;
+}
+
+.sidebar-brand-info span {
+  display: block;
+  max-width: 100%;
   overflow: hidden;
   color: #b9c2d0;
   font-size: 0.82rem;
