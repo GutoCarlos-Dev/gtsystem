@@ -76,6 +76,7 @@
           <button class="nav-item" data-page="finance" type="button">Financeiro</button>
           <button class="nav-item" data-page="clients" type="button">Clientes</button>
           <button class="nav-item" data-page="settings" type="button">Configuração</button>
+          <button class="nav-item hidden" data-page="admin" id="adminNavItem" type="button">Administração</button>
         </nav>
       </aside>
 
@@ -350,6 +351,50 @@
               <button type="submit">Salvar configuração</button>
             </div>
           </form>
+        </section>
+
+        <section id="adminPage" class="page" aria-labelledby="adminTitle">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Gestão da plataforma</p>
+              <h2 id="adminTitle">Administração</h2>
+            </div>
+            <button id="refreshAdminButton" class="secondary-button" type="button">Atualizar dados</button>
+          </div>
+          <div class="metric-grid admin-metric-grid">
+            <article class="metric-card">
+              <span>Usuários cadastrados</span>
+              <strong id="adminUsersMetric">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Empresas usando o sistema</span>
+              <strong id="adminCompaniesMetric">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>OS geradas</span>
+              <strong id="adminOrdersMetric">0</strong>
+            </article>
+          </div>
+          <section class="panel">
+            <div class="panel-header">
+              <h3>Uso por empresa</h3>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Usuário</th>
+                    <th>Empresa</th>
+                    <th>Perfil</th>
+                    <th>OS geradas</th>
+                    <th>Última atualização</th>
+                  </tr>
+                </thead>
+                <tbody id="adminCompaniesTable"></tbody>
+              </table>
+            </div>
+          </section>
+          <p id="adminStatus" class="hint" aria-live="polite"></p>
         </section>
       </main>
     </div>

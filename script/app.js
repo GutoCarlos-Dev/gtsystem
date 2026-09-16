@@ -62,6 +62,13 @@ const els = {
   pageTitle: document.querySelector("#pageTitle"),
   userEmailMenu: document.querySelector("#userEmailMenu"),
   companyNameMenu: document.querySelector("#companyNameMenu"),
+  adminNavItem: document.querySelector("#adminNavItem"),
+  refreshAdminButton: document.querySelector("#refreshAdminButton"),
+  adminUsersMetric: document.querySelector("#adminUsersMetric"),
+  adminCompaniesMetric: document.querySelector("#adminCompaniesMetric"),
+  adminOrdersMetric: document.querySelector("#adminOrdersMetric"),
+  adminCompaniesTable: document.querySelector("#adminCompaniesTable"),
+  adminStatus: document.querySelector("#adminStatus"),
   orderForm: document.querySelector("#orderForm"),
   osPreview: document.querySelector("#osPreview"),
   orderClient: document.querySelector("#orderClient"),
@@ -82,7 +89,8 @@ const pageNames = {
   reports: "Relatório de OS",
   finance: "Financeiro",
   clients: "Clientes",
-  settings: "Configuração"
+  settings: "Configuração",
+  admin: "Administração"
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -163,6 +171,7 @@ function wireEvents() {
   els.settingsForm.addEventListener("submit", saveSettings);
   els.financeForm.addEventListener("submit", saveFinance);
   els.reportSearch.addEventListener("input", renderOrdersTable);
+  els.refreshAdminButton.addEventListener("click", loadAdminOverview);
 
   const client = getSupabaseClient();
   if (client) {
@@ -387,9 +396,55 @@ async function openAuthenticatedApp(user) {
   saveLocalState();
 
   await loadStateFromSupabase(user);
+  setAdminAccess(profile);
   hydrateSettingsForm();
   showApp();
   return true;
+}
+
+function isAdministrator() {
+  return ["admin", "administrador"].includes(String(currentProfile?.role || "").toLowerCase());
+}
+
+function setAdminAccess(profile) {
+  const allowed = ["admin", "administrador"].includes(String(profile?.role || "").toLowerCase());
+  els.adminNavItem.classList.toggle("hidden", !allowed);
+  if (allowed) loadAdminOverview();
+}
+
+async function loadAdminOverview() {
+  if (!isAdministrator()) return;
+
+  els.adminStatus.textContent = "Carregando indicadores...";
+  const client = getSupabaseClient();
+  const { data, error } = await client.rpc("get_admin_overview");
+  if (error) {
+    console.error("Erro ao carregar visão administrativa:", error);
+    els.adminStatus.textContent = "Não foi possível carregar os indicadores. Execute o SQL de administração no Supabase.";
+    return;
+  }
+
+  const rows = data || [];
+  els.adminUsersMetric.textContent = rows.length;
+  els.adminCompaniesMetric.textContent = new Set(rows.map((row) => row.company_name || "Sem empresa")).size;
+  els.adminOrdersMetric.textContent = rows.reduce((total, row) => total + Number(row.orders_count || 0), 0);
+  els.adminCompaniesTable.innerHTML = rows.length
+    ? rows.map((row) => `
+      <tr>
+        <td>${escapeHtml(row.username || row.email || "-")}</td>
+        <td>${escapeHtml(row.company_name || "Sem empresa")}</td>
+        <td>${escapeHtml(row.role || "operador")}</td>
+        <td>${escapeHtml(row.orders_count || 0)}</td>
+        <td>${escapeHtml(formatAdminDate(row.updated_at))}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="5">Nenhum usuário cadastrado.</td></tr>`;
+  els.adminStatus.textContent = `Atualizado em ${new Date().toLocaleString("pt-BR")}.`;
+}
+
+function formatAdminDate(value) {
+  if (!value) return "Nunca";
+  return new Date(value).toLocaleString("pt-BR");
 }
 
 async function loadOrCreateProfile(user) {
@@ -520,6 +575,11 @@ function setLoginStatus(message, type) {
 }
 
 function showPage(page) {
+  if (page === "admin" && !isAdministrator()) {
+    alert("Acesso restrito ao administrador.");
+    return;
+  }
+
   document.querySelectorAll(".page").forEach((section) => {
     section.classList.remove("active-page");
   });

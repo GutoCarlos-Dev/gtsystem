@@ -79,3 +79,53 @@ for update
 to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
+
+-- Visão administrativa: não expõe os dados operacionais completos, apenas
+-- indicadores por perfil. O usuário precisa ser promovido manualmente para
+-- role = 'administrador' por um responsável pelo projeto.
+create or replace function public.get_admin_overview()
+returns table (
+  user_id uuid,
+  email text,
+  username text,
+  full_name text,
+  role text,
+  active boolean,
+  company_name text,
+  orders_count integer,
+  updated_at timestamptz
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select
+    p.id,
+    p.email,
+    coalesce(nullif(u.raw_user_meta_data ->> 'username', ''), split_part(p.email, '@', 1)),
+    p.full_name,
+    p.role,
+    p.active,
+    coalesce(nullif(d.data -> 'company' ->> 'name', ''), 'Sem empresa'),
+    jsonb_array_length(case when jsonb_typeof(d.data -> 'orders') = 'array' then d.data -> 'orders' else '[]'::jsonb end),
+    d.updated_at
+  from public.os_profiles p
+  left join auth.users u on u.id = p.id
+  left join public.os_app_data d on d.user_id = p.id
+  where exists (
+    select 1
+    from public.os_profiles admin
+    where admin.id = auth.uid()
+      and lower(admin.role) in ('admin', 'administrador')
+      and admin.active = true
+  )
+  order by coalesce(nullif(d.data -> 'company' ->> 'name', ''), 'Sem empresa'), p.full_name;
+$$;
+
+revoke all on function public.get_admin_overview() from public;
+grant execute on function public.get_admin_overview() to authenticated;
+
+-- Depois de criar a conta do responsável, promova-a uma única vez:
+-- update public.os_profiles
+-- set role = 'administrador', updated_at = now()
+-- where email = 'responsavel@gerador-os.local';
