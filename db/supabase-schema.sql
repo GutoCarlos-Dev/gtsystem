@@ -187,6 +187,8 @@ using (auth.uid() = user_id);
 -- Visão administrativa: não expõe os dados operacionais completos, apenas
 -- indicadores por perfil. O usuário precisa ser promovido manualmente para
 -- role = 'administrador' por um responsável pelo projeto.
+drop function if exists public.get_admin_overview();
+
 create or replace function public.get_admin_overview()
 returns table (
   user_id uuid,

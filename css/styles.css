@@ -1,15 +1,15 @@
 :root {
-  --ink: #101828;
-  --muted: #667085;
-  --line: #d9e2ec;
-  --soft: #f6f8fb;
+  --ink: #161316;
+  --muted: #655f61;
+  --line: #ded8d5;
+  --soft: #f7f6f4;
   --panel: #ffffff;
-  --primary: #006d77;
-  --primary-dark: #004f57;
-  --accent: #d97706;
+  --primary: #a7192e;
+  --primary-dark: #720f1f;
+  --accent: #c49a32;
   --success: #1f8a5b;
   --danger: #b42318;
-  --shadow: 0 18px 50px rgba(16, 24, 40, 0.12);
+  --shadow: 0 18px 50px rgba(34, 19, 22, 0.14);
 }
 
 * {
@@ -39,7 +39,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(0, 109, 119, 0.28);
+  outline: 3px solid rgba(167, 25, 46, 0.28);
   outline-offset: 2px;
 }
 
@@ -63,9 +63,7 @@ textarea:focus-visible {
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(320px, 0.9fr) minmax(320px, 1.1fr);
-  background:
-    linear-gradient(115deg, rgba(0, 109, 119, 0.94), rgba(16, 24, 40, 0.9)),
-    url("https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1600&q=80") center / cover;
+  background: linear-gradient(120deg, #100b0d 0%, #771323 58%, #c49a32 145%);
 }
 
 .login-panel,
@@ -78,7 +76,30 @@ textarea:focus-visible {
 }
 
 .login-panel {
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  min-height: 86px;
+}
+
+.login-company-logo {
+  display: block;
+  width: min(100%, 320px);
+  height: 86px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.login-company-name {
+  margin: 14px 0 0;
+  color: var(--ink);
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .brand-mark {
@@ -88,7 +109,8 @@ textarea:focus-visible {
   place-items: center;
   border-radius: 8px;
   color: #fff;
-  background: var(--primary);
+  background: #111014;
+  border: 3px solid var(--accent);
   font-weight: 800;
   letter-spacing: 0;
 }
@@ -337,8 +359,8 @@ textarea {
   min-height: 28px;
   border-radius: 999px;
   padding: 4px 12px;
-  color: #004f57;
-  background: #d9f3f0;
+  color: #6e4d0d;
+  background: #f5e7b8;
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -382,7 +404,8 @@ textarea {
   height: 100vh;
   padding: 22px;
   color: #fff;
-  background: #111827;
+  background: #111014;
+  border-right: 4px solid var(--primary);
 }
 
 .sidebar-brand {
@@ -436,7 +459,8 @@ textarea {
 .nav-item:hover,
 .nav-item.active {
   color: #fff;
-  background: rgba(255, 255, 255, 0.12);
+  background: #5f1220;
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .workspace {
