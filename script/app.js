@@ -15,7 +15,8 @@ const initialState = {
     site: "https://autovidros.app/",
     document: "",
     email: "",
-    address: ""
+    address: "",
+    logo: ""
   },
   clients: [
     {
@@ -35,6 +36,8 @@ let state = loadState();
 let draftOrderId = null;
 let authMode = "login";
 let clientBeingEditedId = null;
+let companyLogoImage = null;
+let companyLogoSource = "";
 
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -79,6 +82,13 @@ const els = {
   searchCnpjButton: document.querySelector("#searchCnpjButton"),
   cnpjSearchStatus: document.querySelector("#cnpjSearchStatus"),
   settingsForm: document.querySelector("#settingsForm"),
+  companyLogoCanvas: document.querySelector("#companyLogoCanvas"),
+  companyLogoInput: document.querySelector("#companyLogoInput"),
+  companyLogoZoom: document.querySelector("#companyLogoZoom"),
+  companyLogoX: document.querySelector("#companyLogoX"),
+  companyLogoY: document.querySelector("#companyLogoY"),
+  centerCompanyLogoButton: document.querySelector("#centerCompanyLogoButton"),
+  companyLogoStatus: document.querySelector("#companyLogoStatus"),
   financeForm: document.querySelector("#financeForm"),
   reportSearch: document.querySelector("#reportSearch")
 };
@@ -169,6 +179,11 @@ function wireEvents() {
   els.cancelClientEditButton.addEventListener("click", resetClientForm);
   els.searchCnpjButton.addEventListener("click", searchCnpj);
   els.settingsForm.addEventListener("submit", saveSettings);
+  els.companyLogoInput.addEventListener("change", loadCompanyLogo);
+  [els.companyLogoZoom, els.companyLogoX, els.companyLogoY].forEach((control) => {
+    control.addEventListener("input", drawCompanyLogo);
+  });
+  els.centerCompanyLogoButton.addEventListener("click", centerCompanyLogo);
   els.financeForm.addEventListener("submit", saveFinance);
   els.reportSearch.addEventListener("input", renderOrdersTable);
   els.refreshAdminButton.addEventListener("click", loadAdminOverview);
@@ -619,6 +634,84 @@ function hydrateSettingsForm() {
   setValue("companyDocument", state.company.document);
   setValue("companyEmail", state.company.email);
   setValue("companyAddress", state.company.address);
+  companyLogoSource = state.company.logo || "";
+  resetCompanyLogoEditor();
+}
+
+function resetCompanyLogoEditor() {
+  companyLogoImage = null;
+  els.companyLogoZoom.value = "100";
+  els.companyLogoX.value = "0";
+  els.companyLogoY.value = "0";
+  if (companyLogoSource) {
+    const image = new Image();
+    image.onload = () => {
+      companyLogoImage = image;
+      drawCompanyLogo();
+      setCompanyLogoStatus("Logo carregada. Ajuste o tamanho e a posição antes de salvar.", "success");
+    };
+    image.onerror = () => setCompanyLogoStatus("Não foi possível carregar a logo salva.", "error");
+    image.src = companyLogoSource;
+  } else {
+    drawCompanyLogo();
+    setCompanyLogoStatus("Escolha uma imagem para personalizar a logo.", "");
+  }
+}
+
+function loadCompanyLogo(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    setCompanyLogoStatus("Escolha um arquivo de imagem válido.", "error");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const image = new Image();
+    image.onload = () => {
+      companyLogoSource = reader.result;
+      companyLogoImage = image;
+      centerCompanyLogo();
+      setCompanyLogoStatus("Imagem pronta. Ajuste o tamanho e a posição antes de salvar.", "success");
+    };
+    image.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function centerCompanyLogo() {
+  els.companyLogoZoom.value = "100";
+  els.companyLogoX.value = "0";
+  els.companyLogoY.value = "0";
+  drawCompanyLogo();
+}
+
+function drawCompanyLogo() {
+  const canvas = els.companyLogoCanvas;
+  const context = canvas.getContext("2d");
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  if (!companyLogoImage) return;
+
+  const baseScale = Math.min(canvas.width / companyLogoImage.width, canvas.height / companyLogoImage.height);
+  const scale = baseScale * (Number(els.companyLogoZoom.value) / 100);
+  const width = companyLogoImage.width * scale;
+  const height = companyLogoImage.height * scale;
+  const offsetX = (canvas.width - width) / 2 + Number(els.companyLogoX.value) * canvas.width / 200;
+  const offsetY = (canvas.height - height) / 2 + Number(els.companyLogoY.value) * canvas.height / 200;
+  context.drawImage(companyLogoImage, offsetX, offsetY, width, height);
+}
+
+function setCompanyLogoStatus(message, type) {
+  els.companyLogoStatus.textContent = message;
+  els.companyLogoStatus.classList.toggle("success", type === "success");
+  els.companyLogoStatus.classList.toggle("error", type === "error");
+}
+
+function getCompanyLogoData() {
+  if (!companyLogoImage) return companyLogoSource;
+  return els.companyLogoCanvas.toDataURL("image/png");
 }
 
 function setValue(id, value) {
@@ -709,13 +802,19 @@ function buildOrderHtml(order) {
     dateStyle: "short",
     timeStyle: "short"
   });
+  const companyLogo = state.company.logo
+    ? `<img class="os-company-logo" src="${escapeHtml(state.company.logo)}" alt="Logo de ${escapeHtml(state.company.name)}">`
+    : "";
 
   return `
     <header class="os-header">
-      <div>
+      <div class="os-company">
+        ${companyLogo}
+        <div>
         <h2>${escapeHtml(state.company.name)}</h2>
         <p>${escapeHtml(state.company.tagline)}</p>
         <p>Contato: ${escapeHtml(state.company.phone)} • ${escapeHtml(state.company.site)}</p>
+        </div>
       </div>
       <div class="os-number">
         <strong>${escapeHtml(order.number)}</strong>
@@ -943,7 +1042,8 @@ function saveSettings(event) {
     site: valueOf("companySite"),
     document: valueOf("companyDocument"),
     email: valueOf("companyEmail"),
-    address: valueOf("companyAddress")
+    address: valueOf("companyAddress"),
+    logo: getCompanyLogoData()
   };
   saveState();
   renderAll();

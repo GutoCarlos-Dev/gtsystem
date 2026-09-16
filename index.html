@@ -346,6 +346,30 @@
               <label class="wide">Endereço
                 <input id="companyAddress" type="text">
               </label>
+              <div class="wide logo-settings">
+                <span class="field-label">Logo da empresa</span>
+                <div class="logo-editor">
+                  <div class="logo-preview-wrap">
+                    <canvas id="companyLogoCanvas" class="logo-preview" width="640" height="320" aria-label="Prévia da logo da empresa"></canvas>
+                    <p id="companyLogoStatus" class="field-status" aria-live="polite">Escolha uma imagem para personalizar a logo.</p>
+                  </div>
+                  <div class="logo-controls">
+                    <label for="companyLogoInput">Imagem da logo
+                      <input id="companyLogoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                    </label>
+                    <label for="companyLogoZoom">Tamanho da imagem
+                      <input id="companyLogoZoom" type="range" min="50" max="200" value="100" step="1">
+                    </label>
+                    <label for="companyLogoX">Posição horizontal
+                      <input id="companyLogoX" type="range" min="-100" max="100" value="0" step="1">
+                    </label>
+                    <label for="companyLogoY">Posição vertical
+                      <input id="companyLogoY" type="range" min="-100" max="100" value="0" step="1">
+                    </label>
+                    <button id="centerCompanyLogoButton" class="secondary-button" type="button">Centralizar imagem</button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="form-actions">
               <button type="submit">Salvar configuração</button>
