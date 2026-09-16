@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gerador de OS</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main id="loginView" class="login-shell">
+      <section class="login-panel" aria-labelledby="loginTitle">
+        <div class="brand-mark" aria-hidden="true">OS</div>
+        <p class="eyebrow">Gestão de serviços</p>
+        <h1 id="loginTitle">Acesse sua área de trabalho</h1>
+        <p class="login-copy">Informe seu e-mail para validar o acesso no Supabase e abrir seu perfil de trabalho.</p>
+
+        <form id="loginForm" class="login-form">
+          <label for="loginEmail">E-mail de acesso</label>
+          <div class="email-row">
+            <input id="loginEmail" name="email" type="email" autocomplete="email" placeholder="usuario@empresa.com.br" required>
+            <button type="submit">Entrar</button>
+          </div>
+          <span id="loginStatus" class="hint" aria-live="polite">Você receberá um link de acesso no e-mail informado.</span>
+        </form>
+      </section>
+
+      <aside class="login-aside" aria-label="Resumo do sistema">
+        <div>
+          <span class="status-pill">Profissional</span>
+          <h2>Operação organizada do primeiro contato ao faturamento.</h2>
+        </div>
+        <div class="login-metrics">
+          <article>
+            <strong>OS</strong>
+            <span>modelo com cliente, veículo, peças, valores e assinatura</span>
+          </article>
+          <article>
+            <strong>Mobile</strong>
+            <span>navegação simples para celular, tablet e desktop</span>
+          </article>
+          <article>
+            <strong>Financeiro</strong>
+            <span>boletos e notas fiscais em uma fila de emissão</span>
+          </article>
+        </div>
+      </aside>
+    </main>
+
+    <div id="appView" class="app-shell hidden">
+      <aside class="sidebar" aria-label="Menu principal">
+        <div class="sidebar-brand">
+          <span class="brand-mark small" aria-hidden="true">OS</span>
+          <div>
+            <strong id="companyNameMenu">Gerador de OS</strong>
+            <span id="userEmailMenu">usuario@empresa.com</span>
+          </div>
+        </div>
+        <nav class="nav-list" aria-label="Páginas">
+          <button class="nav-item active" data-page="dashboard" type="button">Painel</button>
+          <button class="nav-item" data-page="orders" type="button">Gerar OS</button>
+          <button class="nav-item" data-page="reports" type="button">Relatório de OS</button>
+          <button class="nav-item" data-page="finance" type="button">Financeiro</button>
+          <button class="nav-item" data-page="clients" type="button">Clientes</button>
+          <button class="nav-item" data-page="settings" type="button">Configuração</button>
+        </nav>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <button id="menuToggle" class="icon-button" type="button" aria-label="Abrir menu">☰</button>
+          <div>
+            <p class="eyebrow">Bem-vindo</p>
+            <h1 id="pageTitle">Painel</h1>
+          </div>
+          <button id="logoutButton" class="ghost-button" type="button">Sair</button>
+        </header>
+
+        <section id="dashboardPage" class="page active-page" aria-labelledby="dashboardTitle">
+          <h2 id="dashboardTitle" class="sr-only">Painel</h2>
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span>OS abertas</span>
+              <strong id="openOrdersMetric">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Clientes</span>
+              <strong id="clientsMetric">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Valor em OS</span>
+              <strong id="revenueMetric">R$ 0,00</strong>
+            </article>
+            <article class="metric-card">
+              <span>Pendências fiscais</span>
+              <strong id="financeMetric">0</strong>
+            </article>
+          </div>
+          <div class="content-grid">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Atalhos</h2>
+              </div>
+              <div class="quick-actions">
+                <button data-shortcut="orders" type="button">Nova OS</button>
+                <button data-shortcut="reports" type="button">Ver relatórios</button>
+                <button data-shortcut="finance" type="button">Emitir boleto/NF</button>
+                <button data-shortcut="clients" type="button">Cadastrar cliente</button>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Últimas OS</h2>
+              </div>
+              <div id="recentOrders" class="timeline"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="ordersPage" class="page" aria-labelledby="ordersTitle">
+          <div class="split-layout">
+            <form id="orderForm" class="panel form-panel" aria-labelledby="ordersTitle">
+              <div class="panel-header">
+                <h2 id="ordersTitle">Gerar OS</h2>
+                <span id="orderNumberLabel" class="status-pill">OS-00001</span>
+              </div>
+              <div class="form-grid">
+                <label>Cliente
+                  <select id="orderClient" required></select>
+                </label>
+                <label>Status
+                  <select id="orderStatus">
+                    <option>Aberta</option>
+                    <option>Em andamento</option>
+                    <option>Concluída</option>
+                    <option>Cancelada</option>
+                  </select>
+                </label>
+                <label>Prioridade
+                  <select id="orderPriority">
+                    <option>Média</option>
+                    <option>Baixa</option>
+                    <option>Alta</option>
+                    <option>Urgente</option>
+                  </select>
+                </label>
+                <label>Placa
+                  <input id="vehiclePlate" type="text" placeholder="ABC-1234">
+                </label>
+                <label>Tipo do veículo
+                  <input id="vehicleType" type="text" placeholder="Caminhão">
+                </label>
+                <label>Modelo
+                  <input id="vehicleModel" type="text" placeholder="Accelo">
+                </label>
+                <label>KM / Identificação
+                  <input id="vehicleKm" type="text" placeholder="873029">
+                </label>
+                <label>Data de entrada
+                  <input id="startDate" type="date" required>
+                </label>
+                <label>Data prevista
+                  <input id="dueDate" type="date">
+                </label>
+                <label>Data de conclusão
+                  <input id="finishDate" type="date">
+                </label>
+                <label>Valor
+                  <input id="orderValue" type="number" min="0" step="0.01" placeholder="760.00">
+                </label>
+                <label>Serviços realizados
+                  <input id="servicesDone" type="text" placeholder="Instalação / troca / reparo">
+                </label>
+                <label>Peças / vidros
+                  <input id="partsUsed" type="text" placeholder="Peças de reposição">
+                </label>
+                <label class="wide">Descrição do serviço
+                  <textarea id="serviceDescription" rows="4" placeholder="01 vidro porta Esq original - R$ 640,00&#10;01 guia vidro - R$ 120,00"></textarea>
+                </label>
+                <label class="wide">Observações
+                  <textarea id="orderNotes" rows="3" placeholder="Pedido, responsável, condições de entrega..."></textarea>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button type="submit">Salvar OS</button>
+                <button id="printOrderButton" class="secondary-button" type="button">Imprimir / PDF</button>
+              </div>
+            </form>
+
+            <section class="os-paper-wrap" aria-label="Prévia da ordem de serviço">
+              <div id="osPreview" class="os-paper"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="reportsPage" class="page" aria-labelledby="reportsTitle">
+          <section class="panel">
+            <div class="panel-header">
+              <h2 id="reportsTitle">Relatório de OS</h2>
+              <input id="reportSearch" type="search" placeholder="Buscar por OS, cliente ou placa">
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>OS</th>
+                    <th>Cliente</th>
+                    <th>Placa</th>
+                    <th>Status</th>
+                    <th>Valor</th>
+                    <th>Entrada</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="financePage" class="page" aria-labelledby="financeTitle">
+          <div class="content-grid">
+            <form id="financeForm" class="panel form-panel" aria-labelledby="financeTitle">
+              <div class="panel-header">
+                <h2 id="financeTitle">Financeiro</h2>
+              </div>
+              <div class="form-grid">
+                <label>Cliente
+                  <select id="financeClient"></select>
+                </label>
+                <label>Referência
+                  <input id="financeReference" type="text" placeholder="OS-00001">
+                </label>
+                <label>Valor
+                  <input id="financeValue" type="number" min="0" step="0.01" required>
+                </label>
+                <label>Vencimento
+                  <input id="financeDueDate" type="date" required>
+                </label>
+                <label>Tipo
+                  <select id="financeType">
+                    <option>Boleto</option>
+                    <option>Nota fiscal</option>
+                    <option>Boleto + Nota fiscal</option>
+                  </select>
+                </label>
+                <label>Status
+                  <select id="financeStatus">
+                    <option>Pendente</option>
+                    <option>Emitido</option>
+                    <option>Pago</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button type="submit">Adicionar lançamento</button>
+              </div>
+            </form>
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Fila de emissão</h2>
+              </div>
+              <div id="financeList" class="stack-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="clientsPage" class="page" aria-labelledby="clientsTitle">
+          <div class="content-grid">
+            <form id="clientForm" class="panel form-panel" aria-labelledby="clientsTitle">
+              <div class="panel-header">
+                <h2 id="clientsTitle">Cadastro de clientes</h2>
+              </div>
+              <div class="form-grid">
+                <label>Nome / Razão social
+                  <input id="clientName" type="text" required placeholder="Empresa cliente">
+                </label>
+                <label class="document-field">Documento
+                  <div class="input-action">
+                    <input id="clientDocument" type="text" placeholder="CNPJ / CPF">
+                    <button id="searchCnpjButton" class="secondary-button" type="button">Buscar CNPJ</button>
+                  </div>
+                  <span id="cnpjSearchStatus" class="field-status" aria-live="polite"></span>
+                </label>
+                <label>Telefone
+                  <input id="clientPhone" type="tel" placeholder="(00) 00000-0000">
+                </label>
+                <label>E-mail
+                  <input id="clientEmail" type="email" placeholder="cliente@empresa.com">
+                </label>
+                <label class="wide">Endereço
+                  <input id="clientAddress" type="text" placeholder="Rua, número, cidade">
+                </label>
+              </div>
+              <div class="form-actions">
+                <button type="submit">Salvar cliente</button>
+              </div>
+            </form>
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Empresas cadastradas</h2>
+              </div>
+              <div id="clientsList" class="stack-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="settingsPage" class="page" aria-labelledby="settingsTitle">
+          <form id="settingsForm" class="panel form-panel narrow" aria-labelledby="settingsTitle">
+            <div class="panel-header">
+              <h2 id="settingsTitle">Configuração do perfil da empresa</h2>
+            </div>
+            <div class="form-grid">
+              <label>Nome da empresa
+                <input id="companyName" type="text" required>
+              </label>
+              <label>Slogan
+                <input id="companyTagline" type="text">
+              </label>
+              <label>Telefone
+                <input id="companyPhone" type="tel">
+              </label>
+              <label>Site
+                <input id="companySite" type="url">
+              </label>
+              <label>Documento
+                <input id="companyDocument" type="text">
+              </label>
+              <label>E-mail
+                <input id="companyEmail" type="email">
+              </label>
+              <label class="wide">Endereço
+                <input id="companyAddress" type="text">
+              </label>
+            </div>
+            <div class="form-actions">
+              <button type="submit">Salvar configuração</button>
+            </div>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
