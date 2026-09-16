@@ -149,9 +149,9 @@ function wireEvents() {
 
   const client = getSupabaseClient();
   if (client) {
-    client.auth.onAuthStateChange(async (event, session) => {
+    client.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
-        await openAuthenticatedApp(session.user);
+        setTimeout(() => openAuthenticatedApp(session.user), 0);
       }
     });
   }
@@ -237,7 +237,7 @@ async function requestSupabaseLogin(email) {
   const { error } = await client.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: window.location.href.split("#")[0]
+      emailRedirectTo: getAuthRedirectUrl()
     }
   });
 
@@ -248,6 +248,10 @@ async function requestSupabaseLogin(email) {
 
   setLoginStatus("Link enviado. Abra seu e-mail e confirme o acesso.", "success");
   return true;
+}
+
+function getAuthRedirectUrl() {
+  return supabaseConfig.siteUrl || `${window.location.origin}${window.location.pathname}`;
 }
 
 function getSupabaseLoginErrorMessage(error) {
