@@ -46,6 +46,13 @@ const money = new Intl.NumberFormat("pt-BR", {
   currency: "BRL"
 });
 
+const planOptions = {
+  free: { label: "Free", price: "R$ 0,00", limit: 30 },
+  pro: { label: "Pro", price: "R$ 50,00", limit: 80 },
+  standard: { label: "Standard", price: "R$ 80,00", limit: 120 },
+  full: { label: "Full", price: "R$ 200,00", limit: null }
+};
+
 const els = {
   loginView: document.querySelector("#loginView"),
   appView: document.querySelector("#appView"),
@@ -457,6 +464,29 @@ function isAdministrator() {
   return ["admin", "administrador"].includes(String(currentProfile?.role || "").trim().toLowerCase());
 }
 
+function getCurrentPlan() {
+  return planOptions[String(currentProfile?.plan_code || "free").trim().toLowerCase()] || planOptions.free;
+}
+
+function getMonthlyOrderCount() {
+  const now = new Date();
+  return state.orders.filter((order) => {
+    if (!order.createdAt) return false;
+    const createdAt = new Date(order.createdAt);
+    return createdAt.getFullYear() === now.getFullYear() && createdAt.getMonth() === now.getMonth();
+  }).length;
+}
+
+function canCreateOrder() {
+  const plan = getCurrentPlan();
+  const used = getMonthlyOrderCount();
+  if (plan.limit !== null && used >= plan.limit) {
+    alert(`O plano ${plan.label} atingiu o limite de ${plan.limit} OS neste mês. Escolha um plano superior para continuar.`);
+    return false;
+  }
+  return true;
+}
+
 function setAdminAccess(profile) {
   const allowed = ["admin", "administrador"].includes(String(profile?.role || "").trim().toLowerCase());
   els.adminNavItem.classList.toggle("hidden", !allowed);
@@ -485,12 +515,47 @@ async function loadAdminOverview() {
         <td>${escapeHtml(row.username || row.email || "-")}</td>
         <td>${escapeHtml(row.company_name || "Sem empresa")}</td>
         <td>${escapeHtml(row.role || "operador")}</td>
+        <td>${escapeHtml(formatPlan(row.plan_code))}</td>
+        <td>
+          <select class="admin-plan-select" data-user-plan="${escapeHtml(row.user_id)}" aria-label="Plano de ${escapeHtml(row.email || row.username || "usuário")}">
+            ${renderPlanOptions(row.plan_code)}
+          </select>
+          <small>${escapeHtml(`${row.monthly_orders_count || 0}/${row.monthly_order_limit ?? "Ilimitadas"} OS no mês`)}</small>
+        </td>
         <td>${escapeHtml(row.orders_count || 0)}</td>
         <td>${escapeHtml(formatAdminDate(row.updated_at))}</td>
       </tr>
     `).join("")
-    : `<tr><td colspan="5">Nenhum usuário cadastrado.</td></tr>`;
+    : `<tr><td colspan="7">Nenhum usuário cadastrado.</td></tr>`;
+  document.querySelectorAll("[data-user-plan]").forEach((select) => {
+    select.addEventListener("change", () => updateUserPlan(select.dataset.userPlan, select.value));
+  });
   els.adminStatus.textContent = `Atualizado em ${new Date().toLocaleString("pt-BR")}.`;
+}
+
+function renderPlanOptions(selectedPlan) {
+  return Object.entries(planOptions).map(([code, plan]) => `
+    <option value="${code}" ${code === (selectedPlan || "free") ? "selected" : ""}>${plan.label} - ${plan.price}${plan.limit ? ` (${plan.limit} OS/mês)` : " (Ilimitado)"}</option>
+  `).join("");
+}
+
+function formatPlan(planCode) {
+  return planOptions[planCode]?.label || "Free";
+}
+
+async function updateUserPlan(userId, planCode) {
+  const client = getSupabaseClient();
+  if (!client) return;
+  const { error } = await client.rpc("set_user_plan", {
+    target_user_id: userId,
+    target_plan_code: planCode
+  });
+  if (error) {
+    alert("Não foi possível atualizar o plano: " + error.message);
+    loadAdminOverview();
+    return;
+  }
+  loadAdminOverview();
 }
 
 function formatAdminDate(value) {
@@ -525,7 +590,9 @@ async function loadOrCreateProfile(user) {
       email: user.email || "",
       full_name: user.user_metadata?.full_name || "",
       role: "operador",
-      active: true
+      active: true,
+      plan_code: "free",
+      monthly_order_limit: 30
     };
 
     const { data: insertedProfile, error: insertError } = await client
@@ -933,6 +1000,7 @@ function saveOrder(event) {
 
   const order = getOrderFromForm();
   const existingIndex = state.orders.findIndex((item) => item.id === order.id);
+  if (existingIndex < 0 && !canCreateOrder()) return;
   if (existingIndex >= 0) {
     state.orders[existingIndex] = order;
   } else {

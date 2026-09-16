@@ -9,9 +9,28 @@ create table if not exists public.os_profiles (
   full_name text,
   role text not null default 'operador',
   active boolean not null default true,
+  plan_code text not null default 'free' check (plan_code in ('free', 'pro', 'standard', 'full')),
+  monthly_order_limit integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.os_profiles
+  add column if not exists plan_code text not null default 'free';
+
+alter table public.os_profiles
+  add column if not exists monthly_order_limit integer;
+
+update public.os_profiles
+set monthly_order_limit = case lower(trim(plan_code))
+  when 'free' then 30
+  when 'pro' then 80
+  when 'standard' then 120
+  when 'full' then null
+  else 30
+end
+where monthly_order_limit is null
+  and lower(trim(plan_code)) <> 'full';
 
 create table if not exists public.os_app_data (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -87,6 +106,47 @@ for insert
 to authenticated
 with check (auth.uid() = id);
 
+create or replace function public.set_user_plan(
+  target_user_id uuid,
+  target_plan_code text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  next_limit integer;
+begin
+  if not exists (
+    select 1 from public.os_profiles
+    where id = auth.uid()
+      and lower(trim(role)) in ('admin', 'administrador')
+      and active = true
+  ) then
+    raise exception 'Acesso administrativo necessário';
+  end if;
+
+  next_limit := case lower(trim(target_plan_code))
+    when 'free' then 30
+    when 'pro' then 80
+    when 'standard' then 120
+    when 'full' then null
+    else null
+  end;
+
+  if lower(trim(target_plan_code)) not in ('free', 'pro', 'standard', 'full') then
+    raise exception 'Plano inválido';
+  end if;
+
+  update public.os_profiles
+  set plan_code = lower(trim(target_plan_code)),
+      monthly_order_limit = next_limit,
+      updated_at = now()
+  where id = target_user_id;
+end;
+$$;
+
 create policy "os_app_data_select_own"
 on public.os_app_data
 for select
@@ -137,7 +197,10 @@ returns table (
   active boolean,
   company_name text,
   orders_count integer,
-  updated_at timestamptz
+  updated_at timestamptz,
+  plan_code text,
+  monthly_order_limit integer,
+  monthly_orders_count integer
 )
 language sql
 security definer
@@ -152,7 +215,15 @@ as $$
     p.active,
     coalesce(nullif(d.data -> 'company' ->> 'name', ''), 'Sem empresa'),
     jsonb_array_length(case when jsonb_typeof(d.data -> 'orders') = 'array' then d.data -> 'orders' else '[]'::jsonb end),
-    d.updated_at
+    d.updated_at,
+    p.plan_code,
+    p.monthly_order_limit,
+    (
+      select count(*)::integer
+      from jsonb_array_elements(case when jsonb_typeof(d.data -> 'orders') = 'array' then d.data -> 'orders' else '[]'::jsonb end) order_row
+      where (order_row ->> 'createdAt')::timestamptz >= date_trunc('month', now())
+        and (order_row ->> 'createdAt')::timestamptz < date_trunc('month', now()) + interval '1 month'
+    )
   from public.os_profiles p
   left join auth.users u on u.id = p.id
   left join public.os_app_data d on d.user_id = p.id
@@ -168,6 +239,8 @@ $$;
 
 revoke all on function public.get_admin_overview() from public;
 grant execute on function public.get_admin_overview() to authenticated;
+revoke all on function public.set_user_plan(uuid, text) from public;
+grant execute on function public.set_user_plan(uuid, text) to authenticated;
 
 -- Para liberar o painel administrativo, execute com o e-mail real do responsável:
 -- update public.os_profiles
