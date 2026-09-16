@@ -78,6 +78,7 @@
           <button class="nav-item" data-page="reports" type="button">Relatório de OS</button>
           <button class="nav-item" data-page="finance" type="button">Financeiro</button>
           <button class="nav-item" data-page="clients" type="button">Clientes</button>
+          <button class="nav-item" data-page="items" type="button">Itens</button>
           <button class="nav-item" data-page="settings" type="button">Configuração</button>
           <button class="nav-item hidden" data-page="admin" id="adminNavItem" type="button">Administração</button>
         </nav>
@@ -143,43 +144,47 @@
               </div>
               <div class="form-grid">
                 <label>Cliente
-                  <select id="orderClient" required></select>
+                  <div class="input-action">
+                    <select id="orderClient" required></select>
+                    <button id="addClientFromOrderButton" class="secondary-button add-client-button" type="button" aria-label="Adicionar cliente" title="Adicionar cliente">+</button>
+                  </div>
                 </label>
                 <label>Status
                   <select id="orderStatus">
-                    <option>Aberta</option>
-                    <option>Em andamento</option>
-                    <option>Concluída</option>
-                    <option>Cancelada</option>
+                    <option value="" selected>Selecione o status</option>
+                    <option value="Aberta">Aberta</option>
+                    <option value="Em andamento">Em andamento</option>
+                    <option value="Concluída">Concluída</option>
+                    <option value="Cancelada">Cancelada</option>
                   </select>
-                    <select id="orderClient" required></select>
+                </label>
                 <label>Prioridade
                   <select id="orderPriority">
-                    <option>Média</option>
-                      <option value="" selected>Selecione o status</option>
-                      <option value="Aberta">Aberta</option>
-                    <option>Alta</option>
-                    <option>Urgente</option>
+                    <option value="" selected>Selecione a prioridade</option>
+                    <option value="Baixa">Baixa</option>
+                    <option value="Média">Média</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Urgente">Urgente</option>
                   </select>
                 </label>
                 <label>Placa
-                  <input id="vehiclePlate" type="text" placeholder="ABC-1234">
-                      <option value="" selected>Selecione a prioridade</option>
+                  <input id="vehiclePlate" type="text">
+                </label>
                 <label>Tipo do veículo
-                  <input id="vehicleType" type="text" placeholder="Caminhão">
+                  <input id="vehicleType" type="text">
                 </label>
                 <label>Modelo
-                  <input id="vehicleModel" type="text" placeholder="Accelo">
-                    <input id="vehiclePlate" type="text">
+                  <input id="vehicleModel" type="text">
+                </label>
                 <label>KM / Identificação
-                  <input id="vehicleKm" type="text" placeholder="873029">
-                    <input id="vehicleType" type="text">
+                  <input id="vehicleKm" type="text">
+                </label>
                 <label>Data de entrada
                   <input id="startDate" type="date" required>
-                    <input id="vehicleModel" type="text">
+                </label>
                 <label>Data prevista
                   <input id="dueDate" type="date">
-                    <input id="vehicleKm" type="text">
+                </label>
                 <label>Data de conclusão
                   <input id="finishDate" type="date">
                 </label>
@@ -189,9 +194,15 @@
                 <label>Serviços realizados
                   <input id="servicesDone" type="text">
                 </label>
-                <label>Peças / vidros
-                  <input id="partsUsed" type="text">
-                </label>
+                <div class="wide items-field">
+                  <span class="field-label">Itens</span>
+                  <div class="input-action">
+                    <input id="orderItemInput" type="search" list="companyItemsList" aria-label="Buscar item cadastrado">
+                    <datalist id="companyItemsList"></datalist>
+                    <button id="addOrderItemButton" class="secondary-button add-item-button" type="button" aria-label="Adicionar item" title="Adicionar item">+</button>
+                  </div>
+                  <div id="orderItemsList" class="order-items-list" aria-live="polite"></div>
+                </div>
                 <label class="wide">Descrição do serviço
                   <textarea id="serviceDescription" rows="4"></textarea>
                 </label>
@@ -323,6 +334,42 @@
           </div>
         </section>
 
+        <section id="itemsPage" class="page" aria-labelledby="itemsTitle">
+          <div class="content-grid">
+            <form id="itemForm" class="panel form-panel" aria-labelledby="itemsTitle">
+              <div class="panel-header">
+                <h2 id="itemsTitle">Cadastro de itens</h2>
+              </div>
+              <div class="form-grid">
+                <label>Código do Item
+                  <input id="itemCode" type="text" required>
+                </label>
+                <label>EAN
+                  <input id="itemEan" type="text" inputmode="numeric" required>
+                </label>
+                <label>NCM / SH
+                  <input id="itemNcmSh" type="text" inputmode="numeric" required>
+                </label>
+                <label>Nome
+                  <input id="itemName" type="text" required>
+                </label>
+                <label class="wide">Descrição
+                  <textarea id="itemDescription" rows="3" required></textarea>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button type="submit">Cadastrar item</button>
+              </div>
+            </form>
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Itens cadastrados</h2>
+              </div>
+              <div id="itemsList" class="stack-list"></div>
+            </section>
+          </div>
+        </section>
+
         <section id="settingsPage" class="page" aria-labelledby="settingsTitle">
           <form id="settingsForm" class="panel form-panel narrow" aria-labelledby="settingsTitle">
             <div class="panel-header">
@@ -425,6 +472,38 @@
           <p id="adminStatus" class="hint" aria-live="polite"></p>
         </section>
       </main>
+    </div>
+
+    <div id="quickClientModal" class="modal-backdrop hidden" role="presentation">
+      <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="quickClientTitle">
+        <div class="panel-header">
+          <h2 id="quickClientTitle">Adicionar cliente</h2>
+          <button id="closeQuickClientButton" class="icon-button modal-close" type="button" aria-label="Fechar cadastro">×</button>
+        </div>
+        <form id="quickClientForm">
+          <div class="form-grid">
+            <label>Nome / Razão social
+              <input id="quickClientName" type="text" required>
+            </label>
+            <label>Documento
+              <input id="quickClientDocument" type="text">
+            </label>
+            <label>Telefone
+              <input id="quickClientPhone" type="tel">
+            </label>
+            <label>E-mail
+              <input id="quickClientEmail" type="email">
+            </label>
+            <label class="wide">Endereço
+              <input id="quickClientAddress" type="text">
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit">Salvar e selecionar</button>
+            <button id="cancelQuickClientButton" class="secondary-button" type="button">Cancelar</button>
+          </div>
+        </form>
+      </section>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

@@ -28,6 +28,7 @@ const initialState = {
       address: ""
     }
   ],
+  items: [],
   orders: [],
   finance: []
 };
@@ -38,6 +39,7 @@ let authMode = "login";
 let clientBeingEditedId = null;
 let companyLogoImage = null;
 let companyLogoSource = "";
+let orderItems = [];
 
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -77,8 +79,24 @@ const els = {
   orderForm: document.querySelector("#orderForm"),
   osPreview: document.querySelector("#osPreview"),
   orderClient: document.querySelector("#orderClient"),
+  addClientFromOrderButton: document.querySelector("#addClientFromOrderButton"),
+  orderItemInput: document.querySelector("#orderItemInput"),
+  companyItemsList: document.querySelector("#companyItemsList"),
+  addOrderItemButton: document.querySelector("#addOrderItemButton"),
+  orderItemsList: document.querySelector("#orderItemsList"),
+  quickClientModal: document.querySelector("#quickClientModal"),
+  quickClientForm: document.querySelector("#quickClientForm"),
+  closeQuickClientButton: document.querySelector("#closeQuickClientButton"),
+  cancelQuickClientButton: document.querySelector("#cancelQuickClientButton"),
   financeClient: document.querySelector("#financeClient"),
   clientForm: document.querySelector("#clientForm"),
+  itemForm: document.querySelector("#itemForm"),
+  itemCode: document.querySelector("#itemCode"),
+  itemEan: document.querySelector("#itemEan"),
+  itemNcmSh: document.querySelector("#itemNcmSh"),
+  itemName: document.querySelector("#itemName"),
+  itemDescription: document.querySelector("#itemDescription"),
+  itemsList: document.querySelector("#itemsList"),
   clientSubmitButton: document.querySelector("#clientSubmitButton"),
   cancelClientEditButton: document.querySelector("#cancelClientEditButton"),
   searchCnpjButton: document.querySelector("#searchCnpjButton"),
@@ -101,6 +119,7 @@ const pageNames = {
   reports: "Relatório de OS",
   finance: "Financeiro",
   clients: "Clientes",
+  items: "Itens",
   settings: "Configuração",
   admin: "Administração"
 };
@@ -171,6 +190,20 @@ function wireEvents() {
   els.orderForm.addEventListener("input", renderOrderPreview);
   els.orderForm.addEventListener("change", renderOrderPreview);
   els.orderForm.addEventListener("submit", saveOrder);
+  els.addClientFromOrderButton.addEventListener("click", openQuickClientModal);
+  els.addOrderItemButton.addEventListener("click", addOrderItem);
+  els.orderItemInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addOrderItem();
+    }
+  });
+  els.quickClientForm.addEventListener("submit", saveClientFromOrder);
+  els.closeQuickClientButton.addEventListener("click", closeQuickClientModal);
+  els.cancelQuickClientButton.addEventListener("click", closeQuickClientModal);
+  els.quickClientModal.addEventListener("click", (event) => {
+    if (event.target === els.quickClientModal) closeQuickClientModal();
+  });
 
   document.querySelector("#printOrderButton").addEventListener("click", () => {
     renderOrderPreview();
@@ -178,6 +211,7 @@ function wireEvents() {
   });
 
   els.clientForm.addEventListener("submit", saveClient);
+  els.itemForm.addEventListener("submit", saveItem);
   els.cancelClientEditButton.addEventListener("click", resetClientForm);
   els.searchCnpjButton.addEventListener("click", searchCnpj);
   els.settingsForm.addEventListener("submit", saveSettings);
@@ -529,11 +563,13 @@ async function loadStateFromSupabase(user) {
         sessionEmail: user.email || "",
         profile: currentProfile
       };
+      await loadItemsFromSupabase(user);
       saveLocalState();
       hydrateSettingsForm();
       return true;
     }
 
+    await loadItemsFromSupabase(user);
     await syncStateToSupabase();
     return true;
   } catch (error) {
@@ -541,6 +577,83 @@ async function loadStateFromSupabase(user) {
     alert("Não foi possível carregar os dados do Supabase. O sistema continuará usando os dados locais deste navegador.");
     return false;
   }
+}
+
+async function loadItemsFromSupabase(user) {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const { data, error } = await client
+      .from("os_items")
+      .select("id, item_code, ean, ncm_sh, name, description")
+      .eq("user_id", user.id)
+      .order("name");
+
+    if (error) throw error;
+    if (data?.length) {
+      state.items = data.map((item) => ({
+        id: item.id,
+        code: item.item_code,
+        ean: item.ean,
+        ncmSh: item.ncm_sh || "",
+        name: item.name,
+        description: item.description || ""
+      }));
+    } else if (state.items?.length) {
+      const legacyItems = state.items.map((item) => ({
+        id: item.id || crypto.randomUUID(),
+        code: item.code || `LEGACY-${item.id}`,
+        ean: item.ean || `LEGACY-${item.id}`,
+        name: item.name,
+        description: item.description || ""
+      }));
+      for (const item of legacyItems) await syncItemToSupabase(item);
+      state.items = legacyItems;
+    } else {
+      state.items = [];
+    }
+    return true;
+  } catch (error) {
+    console.error("Erro ao carregar itens do Supabase:", error);
+    return false;
+  }
+}
+
+async function syncItemToSupabase(item) {
+  const client = getSupabaseClient();
+  if (!client || !currentUser) return false;
+
+  const { error } = await client.from("os_items").insert({
+    id: item.id,
+    user_id: currentUser.id,
+    item_code: item.code,
+    ean: item.ean,
+    ncm_sh: item.ncmSh || "",
+    name: item.name,
+    description: item.description || ""
+  });
+  if (error) {
+    console.error("Erro ao salvar item no Supabase:", error);
+    return false;
+  }
+  return true;
+}
+
+async function deleteItemFromSupabase(itemId) {
+  const client = getSupabaseClient();
+  if (!client || !currentUser) return false;
+
+  const { error } = await client
+    .from("os_items")
+    .delete()
+    .eq("id", itemId)
+    .eq("user_id", currentUser.id);
+  if (error) {
+    console.error("Erro ao excluir item do Supabase:", error);
+    return false;
+  }
+  return true;
 }
 
 async function syncStateToSupabase() {
@@ -571,6 +684,7 @@ function getPersistableState() {
     profile: state.profile,
     company: state.company,
     clients: state.clients,
+    items: state.items,
     orders: state.orders,
     finance: state.finance
   };
@@ -618,6 +732,8 @@ function renderAll() {
   renderDashboard();
   renderOrdersTable();
   renderClientsList();
+  renderItemsList();
+  renderItemOptions();
   renderFinanceList();
   renderOrderPreview();
 }
@@ -767,11 +883,44 @@ function getOrderFromForm() {
     finishDate: valueOf("finishDate"),
     value: Number(valueOf("orderValue") || 0),
     servicesDone: valueOf("servicesDone"),
-    partsUsed: valueOf("partsUsed"),
+    items: [...orderItems],
+    partsUsed: orderItems.join(", "),
     description: valueOf("serviceDescription"),
     notes: valueOf("orderNotes"),
     createdAt: new Date().toISOString()
   };
+}
+
+function addOrderItem() {
+  const item = els.orderItemInput.value.trim();
+  if (!item) return;
+
+  orderItems.push(item);
+  els.orderItemInput.value = "";
+  renderOrderItems();
+  renderOrderPreview();
+  els.orderItemInput.focus();
+}
+
+function removeOrderItem(index) {
+  orderItems.splice(index, 1);
+  renderOrderItems();
+  renderOrderPreview();
+}
+
+function renderOrderItems() {
+  els.orderItemsList.innerHTML = orderItems.length
+    ? orderItems.map((item, index) => `
+      <div class="order-item">
+        <span>${escapeHtml(item)}</span>
+        <button class="remove-order-item" type="button" data-item-index="${index}" aria-label="Remover ${escapeHtml(item)}" title="Remover item">×</button>
+      </div>
+    `).join("")
+    : "";
+
+  els.orderItemsList.querySelectorAll("[data-item-index]").forEach((button) => {
+    button.addEventListener("click", () => removeOrderItem(Number(button.dataset.itemIndex)));
+  });
 }
 
 function valueOf(id) {
@@ -799,6 +948,8 @@ function saveOrder(event) {
 
 function resetOrderForm() {
   els.orderForm.reset();
+  orderItems = [];
+  renderOrderItems();
   document.querySelector("#orderNumberLabel").textContent = nextOrderNumber();
 }
 
@@ -862,8 +1013,11 @@ function buildOrderHtml(order) {
       <div class="os-field">${paragraph(order.description)}</div>
       <div class="os-fields">
         ${field("Serviços realizados", order.servicesDone)}
-        ${field("Peças / Vidros", order.partsUsed)}
       </div>
+    `)}
+
+    ${section("Itens", `
+      <div class="os-item-list">${order.items?.length ? order.items.map((item) => `<div>${escapeHtml(item)}</div>`).join("") : escapeHtml(order.partsUsed || "-")}</div>
     `)}
 
     ${section("Datas e Valor", `
@@ -916,14 +1070,7 @@ function formatDate(date) {
 
 function saveClient(event) {
   event.preventDefault();
-  const client = {
-    id: clientBeingEditedId || crypto.randomUUID(),
-    name: valueOf("clientName"),
-    document: valueOf("clientDocument"),
-    phone: valueOf("clientPhone"),
-    email: valueOf("clientEmail"),
-    address: valueOf("clientAddress")
-  };
+  const client = getClientFromForm();
 
   if (clientBeingEditedId) {
     const clientIndex = state.clients.findIndex((item) => item.id === clientBeingEditedId);
@@ -935,6 +1082,79 @@ function saveClient(event) {
   resetClientForm();
   saveState();
   renderAll();
+}
+
+function saveItem(event) {
+  event.preventDefault();
+  const code = els.itemCode.value.trim();
+  const ean = els.itemEan.value.trim();
+  const ncmSh = els.itemNcmSh.value.trim();
+  const name = els.itemName.value.trim();
+  const description = els.itemDescription.value.trim();
+
+  const newValues = [code, ean, name].filter(Boolean).map((value) => value.toLowerCase());
+  const alreadyExists = (state.items || []).some((item) => [item.code, item.ean, item.name]
+    .filter(Boolean)
+    .some((value) => newValues.includes(value.toLowerCase())));
+  if (alreadyExists) {
+    alert("Já existe um item com este código, EAN ou nome.");
+    return;
+  }
+
+  state.items = state.items || [];
+  const item = { id: crypto.randomUUID(), code, ean, ncmSh, name, description };
+  state.items.unshift(item);
+  els.itemForm.reset();
+  saveState();
+  syncItemToSupabase(item);
+  renderAll();
+}
+
+function deleteItem(itemId) {
+  state.items = (state.items || []).filter((item) => item.id !== itemId);
+  saveState();
+  deleteItemFromSupabase(itemId);
+  renderAll();
+}
+
+function getClientFromForm() {
+  return {
+    id: clientBeingEditedId || crypto.randomUUID(),
+    name: valueOf("clientName"),
+    document: valueOf("clientDocument"),
+    phone: valueOf("clientPhone"),
+    email: valueOf("clientEmail"),
+    address: valueOf("clientAddress")
+  };
+}
+
+function openQuickClientModal() {
+  els.quickClientForm.reset();
+  els.quickClientModal.classList.remove("hidden");
+  document.querySelector("#quickClientName").focus();
+}
+
+function closeQuickClientModal() {
+  els.quickClientModal.classList.add("hidden");
+}
+
+function saveClientFromOrder(event) {
+  event.preventDefault();
+  const client = {
+    id: crypto.randomUUID(),
+    name: valueOf("quickClientName"),
+    document: valueOf("quickClientDocument"),
+    phone: valueOf("quickClientPhone"),
+    email: valueOf("quickClientEmail"),
+    address: valueOf("quickClientAddress")
+  };
+
+  state.clients.unshift(client);
+  saveState();
+  renderAll();
+  els.orderClient.value = client.id;
+  renderOrderPreview();
+  closeQuickClientModal();
 }
 
 function editClient(clientId) {
@@ -1140,6 +1360,31 @@ function renderClientsList() {
   });
   document.querySelectorAll("[data-client-delete]").forEach((button) => {
     button.addEventListener("click", () => deleteClient(button.dataset.clientDelete));
+  });
+}
+
+function renderItemOptions() {
+  els.companyItemsList.innerHTML = (state.items || [])
+    .map((item) => `<option value="${escapeHtml(item.name)}"></option>`)
+    .join("");
+}
+
+function renderItemsList() {
+  els.itemsList.innerHTML = state.items?.length
+    ? state.items.map((item) => `
+      <article class="list-card client-list-card">
+        <div>
+          <strong>${escapeHtml(item.name || "Item sem nome")}</strong>
+          <span>${escapeHtml(`${item.code || "Sem código"} • EAN: ${item.ean || "Sem EAN"} • NCM/SH: ${item.ncmSh || "Sem NCM/SH"}`)}</span>
+          <span>${escapeHtml(item.description || "Sem descrição")}</span>
+        </div>
+        <button class="danger-button" data-item-delete="${escapeHtml(item.id)}" type="button">Excluir</button>
+      </article>
+    `).join("")
+    : empty("Nenhum item cadastrado.");
+
+  els.itemsList.querySelectorAll("[data-item-delete]").forEach((button) => {
+    button.addEventListener("click", () => deleteItem(button.dataset.itemDelete));
   });
 }
 

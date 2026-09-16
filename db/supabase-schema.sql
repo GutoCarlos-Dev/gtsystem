@@ -21,12 +21,32 @@ create table if not exists public.os_app_data (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.os_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  item_code text not null,
+  ean text not null,
+  ncm_sh text not null default '',
+  name text not null,
+  description text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, item_code),
+  unique (user_id, ean),
+  unique (user_id, name)
+);
+
 -- Compatibilidade caso voce ja tenha criado a versao anterior da tabela.
 alter table public.os_app_data
   add column if not exists user_id uuid references auth.users(id) on delete cascade;
 
 alter table public.os_app_data
   add column if not exists user_email text;
+
+alter table public.os_items enable row level security;
+
+alter table public.os_items
+  add column if not exists ncm_sh text not null default '';
 
 create unique index if not exists os_app_data_user_id_key
 on public.os_app_data(user_id);
@@ -38,9 +58,12 @@ revoke all on table public.os_profiles from anon;
 revoke all on table public.os_profiles from authenticated;
 revoke all on table public.os_app_data from anon;
 revoke all on table public.os_app_data from authenticated;
+revoke all on table public.os_items from anon;
+revoke all on table public.os_items from authenticated;
 
 grant select, insert on table public.os_profiles to authenticated;
 grant select, insert, update on table public.os_app_data to authenticated;
+grant select, insert, delete on table public.os_items to authenticated;
 
 drop policy if exists "os_profiles_select_own" on public.os_profiles;
 drop policy if exists "os_profiles_insert_own" on public.os_profiles;
@@ -48,6 +71,9 @@ drop policy if exists "os_profiles_update_own" on public.os_profiles;
 drop policy if exists "os_app_data_select_own" on public.os_app_data;
 drop policy if exists "os_app_data_insert_own" on public.os_app_data;
 drop policy if exists "os_app_data_update_own" on public.os_app_data;
+drop policy if exists "os_items_select_own" on public.os_items;
+drop policy if exists "os_items_insert_own" on public.os_items;
+drop policy if exists "os_items_delete_own" on public.os_items;
 
 create policy "os_profiles_select_own"
 on public.os_profiles
@@ -79,6 +105,24 @@ for update
 to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
+
+create policy "os_items_select_own"
+on public.os_items
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+create policy "os_items_insert_own"
+on public.os_items
+for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+create policy "os_items_delete_own"
+on public.os_items
+for delete
+to authenticated
+using (auth.uid() = user_id);
 
 -- Visão administrativa: não expõe os dados operacionais completos, apenas
 -- indicadores por perfil. O usuário precisa ser promovido manualmente para

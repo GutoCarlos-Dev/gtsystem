@@ -156,6 +156,51 @@ textarea {
   white-space: nowrap;
 }
 
+.input-action .add-client-button {
+  width: 46px;
+  padding: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.input-action .add-item-button {
+  width: 46px;
+  padding: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.order-items-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--soft);
+}
+
+.remove-order-item {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--danger);
+  background: #fff;
+  font-size: 1.1rem;
+}
+
 .field-status {
   min-height: 18px;
   color: var(--muted);
@@ -439,6 +484,36 @@ textarea {
   display: none;
 }
 
+.modal-backdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 24, 40, 0.58);
+}
+
+.modal-panel {
+  width: min(100%, 720px);
+  max-height: min(90vh, 680px);
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.modal-close {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 1.4rem;
+}
+
 .active-page {
   display: block;
 }
@@ -702,6 +777,14 @@ textarea {
 
 .os-section {
   margin-top: 16px;
+}
+
+.os-item-list {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid #d9e2ec;
+  border-radius: 6px;
 }
 
 .os-section-title {
