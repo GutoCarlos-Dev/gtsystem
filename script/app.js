@@ -44,7 +44,7 @@ const els = {
   loginView: document.querySelector("#loginView"),
   appView: document.querySelector("#appView"),
   loginForm: document.querySelector("#loginForm"),
-  loginEmail: document.querySelector("#loginEmail"),
+  loginUsername: document.querySelector("#loginUsername"),
     loginName: document.querySelector("#loginName"),
     loginNameField: document.querySelector("#loginNameField"),
     loginPassword: document.querySelector("#loginPassword"),
@@ -53,8 +53,6 @@ const els = {
     loginPasswordConfirmField: document.querySelector("#loginPasswordConfirmField"),
     loginSubmitButton: document.querySelector("#loginSubmitButton"),
     authDescription: document.querySelector("#authDescription"),
-    forgotPasswordButton: document.querySelector("#forgotPasswordButton"),
-    magicLinkButton: document.querySelector("#magicLinkButton"),
     togglePasswordButton: document.querySelector("#togglePasswordButton"),
     loginStatus: document.querySelector("#loginStatus"),
   logoutButton: document.querySelector("#logoutButton"),
@@ -115,18 +113,13 @@ function saveLocalState() {
 function wireEvents() {
   els.loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const email = els.loginEmail.value.trim().toLowerCase();
-    if (!email) return;
-
-      await submitAuthForm();
+    await submitAuthForm();
   });
 
     document.querySelectorAll("[data-auth-mode]").forEach((button) => {
       button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
     });
 
-    els.forgotPasswordButton.addEventListener("click", () => setAuthMode("recovery"));
-    els.magicLinkButton.addEventListener("click", () => requestSupabaseLogin(els.loginEmail.value.trim().toLowerCase()));
     els.togglePasswordButton.addEventListener("click", togglePasswordVisibility);
 
   els.logoutButton.addEventListener("click", async () => {
@@ -170,10 +163,6 @@ function wireEvents() {
   const client = getSupabaseClient();
   if (client) {
     client.auth.onAuthStateChange((event, session) => {
-        if (event === "PASSWORD_RECOVERY") {
-          setAuthMode("recovery-update");
-          return;
-        }
       if (event === "SIGNED_IN" && session?.user) {
         setTimeout(() => openAuthenticatedApp(session.user), 0);
       }
@@ -249,62 +238,34 @@ async function restoreSupabaseSession() {
   return false;
 }
 
-async function requestSupabaseLogin(email) {
-  const client = getSupabaseClient();
-  if (!client) {
-    setLoginStatus(getSupabaseConfigError(), "error");
-    return false;
-  }
-
-  setLoginStatus("Enviando link de acesso...", "");
-
-  const { error } = await client.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: getAuthRedirectUrl()
-    }
-  });
-
-  if (error) {
-    setLoginStatus(getSupabaseLoginErrorMessage(error), "error");
-    return false;
-  }
-
-  setLoginStatus("Link enviado. Abra seu e-mail e confirme o acesso.", "success");
-  return true;
-}
-
 async function submitAuthForm() {
-  const email = els.loginEmail.value.trim().toLowerCase();
-  if (!email) return;
-
-  if (authMode === "recovery") {
-    await requestSupabasePasswordReset(email);
-    return;
-  }
-
-  if (authMode === "recovery-update") {
-    if (els.loginPassword.value !== els.loginPasswordConfirm.value) {
-      setLoginStatus("As senhas não conferem.", "error");
-      return;
-    }
-    await updateSupabasePassword(els.loginPassword.value);
-    return;
-  }
+  const username = els.loginUsername.value.trim();
+  if (!username) return;
 
   if (authMode === "signup") {
     if (els.loginPassword.value !== els.loginPasswordConfirm.value) {
       setLoginStatus("As senhas não conferem.", "error");
       return;
     }
-    await requestSupabaseSignup(email, els.loginPassword.value, els.loginName.value.trim());
+    await requestSupabaseSignup(username, els.loginPassword.value, els.loginName.value.trim());
     return;
   }
 
-  await requestSupabasePasswordLogin(email, els.loginPassword.value);
+  await requestSupabasePasswordLogin(username, els.loginPassword.value);
 }
 
-async function requestSupabasePasswordLogin(email, password) {
+function getInternalAuthEmail(username) {
+  const normalized = username
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, ".")
+    .replace(/[^a-z0-9._-]/g, "");
+  return `${normalized}@gerador-os.local`;
+}
+
+async function requestSupabasePasswordLogin(username, password) {
   const client = getSupabaseClient();
   if (!client) {
     setLoginStatus(getSupabaseConfigError(), "error");
@@ -312,7 +273,10 @@ async function requestSupabasePasswordLogin(email, password) {
   }
 
   setLoginStatus("Validando acesso...", "");
-  const { error } = await client.auth.signInWithPassword({ email, password });
+  const { error } = await client.auth.signInWithPassword({
+    email: getInternalAuthEmail(username),
+    password
+  });
   if (error) {
     setLoginStatus(getSupabaseAuthErrorMessage(error), "error");
     return false;
@@ -320,7 +284,7 @@ async function requestSupabasePasswordLogin(email, password) {
   return true;
 }
 
-async function requestSupabaseSignup(email, password, fullName) {
+async function requestSupabaseSignup(username, password, fullName) {
   const client = getSupabaseClient();
   if (!client) {
     setLoginStatus(getSupabaseConfigError(), "error");
@@ -329,11 +293,10 @@ async function requestSupabaseSignup(email, password, fullName) {
 
   setLoginStatus("Criando sua conta...", "");
   const { data, error } = await client.auth.signUp({
-    email,
+    email: getInternalAuthEmail(username),
     password,
     options: {
-      data: { full_name: fullName },
-      emailRedirectTo: getAuthRedirectUrl()
+      data: { full_name: fullName, username: username.trim() }
     }
   });
 
@@ -345,45 +308,8 @@ async function requestSupabaseSignup(email, password, fullName) {
   if (data.session?.user) {
     await openAuthenticatedApp(data.session.user);
   } else {
-    setLoginStatus("Cadastro criado. Confirme seu e-mail para liberar o acesso.", "success");
+    setLoginStatus("Cadastro criado, mas o Supabase exige confirmação de e-mail. Desative essa exigência no painel Auth.", "error");
   }
-  return true;
-}
-
-async function requestSupabasePasswordReset(email) {
-  const client = getSupabaseClient();
-  if (!client) {
-    setLoginStatus(getSupabaseConfigError(), "error");
-    return false;
-  }
-
-  setLoginStatus("Enviando instruções...", "");
-  const { error } = await client.auth.resetPasswordForEmail(email, {
-    redirectTo: getAuthRedirectUrl()
-  });
-  if (error) {
-    setLoginStatus(getSupabaseAuthErrorMessage(error), "error");
-    return false;
-  }
-  setLoginStatus("Confira seu e-mail para redefinir a senha.", "success");
-  return true;
-}
-
-async function updateSupabasePassword(password) {
-  const client = getSupabaseClient();
-  if (!client) {
-    setLoginStatus(getSupabaseConfigError(), "error");
-    return false;
-  }
-
-  setLoginStatus("Atualizando sua senha...", "");
-  const { error } = await client.auth.updateUser({ password });
-  if (error) {
-    setLoginStatus(getSupabaseAuthErrorMessage(error), "error");
-    return false;
-  }
-  setAuthMode("login");
-  setLoginStatus("Senha atualizada. Você já pode entrar.", "success");
   return true;
 }
 
@@ -413,40 +339,30 @@ function getSupabaseAuthErrorMessage(error) {
 function setAuthMode(mode) {
   authMode = mode;
   const isSignup = mode === "signup";
-  const isRecovery = mode === "recovery";
-  const isRecoveryUpdate = mode === "recovery-update";
   const isLogin = mode === "login";
-  const isPasswordMode = isLogin || isSignup || isRecoveryUpdate;
 
   document.querySelectorAll("[data-auth-mode]").forEach((button) => {
-    const active = button.dataset.authMode === mode || (isRecovery || isRecoveryUpdate) && button.dataset.authMode === "login";
+    const active = button.dataset.authMode === mode;
     button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
   });
 
   els.authDescription.textContent = isSignup
     ? "Crie seu acesso em poucos segundos e comece a organizar suas ordens de serviço."
-    : isRecoveryUpdate
-      ? "Escolha uma nova senha para voltar ao sistema."
-      : isRecovery
-        ? "Informe seu e-mail para receber o link de recuperação."
-        : "Entre com seu e-mail e senha para abrir seu perfil de trabalho.";
+    : "Entre com seu usuário e senha para abrir seu perfil de trabalho.";
   els.loginNameField.classList.toggle("hidden", !isSignup);
   els.loginName.classList.toggle("hidden", !isSignup);
   els.loginName.required = isSignup;
-  els.loginPasswordField.classList.toggle("hidden", !isPasswordMode);
-  els.loginPassword.classList.toggle("hidden", !isPasswordMode);
-  els.togglePasswordButton.classList.toggle("hidden", !isPasswordMode);
-  els.loginPassword.required = isPasswordMode;
-  els.loginPasswordConfirmField.classList.toggle("hidden", !(isSignup || isRecoveryUpdate));
-  els.loginPasswordConfirm.classList.toggle("hidden", !(isSignup || isRecoveryUpdate));
-  els.loginPasswordConfirm.required = isSignup || isRecoveryUpdate;
-  els.loginPasswordField.textContent = isRecoveryUpdate ? "Nova senha" : "Senha";
+  els.loginPassword.classList.remove("hidden");
+  els.loginPasswordField.classList.remove("hidden");
+  els.togglePasswordButton.classList.remove("hidden");
+  els.loginPassword.required = true;
+  els.loginPasswordConfirmField.classList.toggle("hidden", !isSignup);
+  els.loginPasswordConfirm.classList.toggle("hidden", !isSignup);
+  els.loginPasswordConfirm.required = isSignup;
   els.loginPassword.autocomplete = isLogin ? "current-password" : "new-password";
-  els.loginSubmitButton.textContent = isSignup ? "Criar minha conta" : isRecoveryUpdate ? "Salvar nova senha" : isRecovery ? "Enviar link" : "Entrar";
-  els.forgotPasswordButton.classList.toggle("hidden", !isLogin);
-  els.magicLinkButton.classList.toggle("hidden", !isLogin);
-  setLoginStatus(isSignup ? "Use uma senha com pelo menos 6 caracteres." : isRecoveryUpdate ? "Digite e confirme a nova senha." : isRecovery ? "O link será enviado para o e-mail informado." : "Use seu e-mail e senha cadastrados.", "");
+  els.loginSubmitButton.textContent = isSignup ? "Criar minha conta" : "Entrar";
+  setLoginStatus(isSignup ? "Use uma senha com pelo menos 6 caracteres." : "Use seu usuário e senha cadastrados.", "");
 }
 
 function togglePasswordVisibility() {

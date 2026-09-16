@@ -12,7 +12,7 @@
         <div class="brand-mark" aria-hidden="true">OS</div>
         <p class="eyebrow">Gestão de serviços</p>
         <h1 id="loginTitle">Acesse sua área de trabalho</h1>
-        <p id="authDescription" class="login-copy">Entre com seu e-mail e senha para abrir seu perfil de trabalho.</p>
+        <p id="authDescription" class="login-copy">Entre com seu usuário e senha para abrir seu perfil de trabalho.</p>
 
         <form id="loginForm" class="login-form">
           <div class="auth-mode-list" role="tablist" aria-label="Opções de acesso">
@@ -21,8 +21,8 @@
           </div>
           <label id="loginNameField" class="hidden" for="loginName">Nome completo</label>
           <input id="loginName" class="hidden" name="name" type="text" autocomplete="name" placeholder="Seu nome completo">
-          <label for="loginEmail">E-mail de acesso</label>
-          <input id="loginEmail" name="email" type="email" autocomplete="email" placeholder="usuario@empresa.com.br" required>
+          <label for="loginUsername">Usuário</label>
+          <input id="loginUsername" name="username" type="text" autocomplete="username" placeholder="ex.: joao.silva" required>
           <label id="loginPasswordField" for="loginPassword">Senha</label>
           <div class="password-row">
             <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Mínimo de 6 caracteres" minlength="6" required>
@@ -32,10 +32,9 @@
           <input id="loginPasswordConfirm" class="hidden" name="passwordConfirm" type="password" autocomplete="new-password" placeholder="Repita a senha" minlength="6">
           <button id="loginSubmitButton" class="auth-submit" type="submit">Entrar</button>
           <div class="auth-links">
-            <button id="forgotPasswordButton" type="button">Esqueci minha senha</button>
-            <button id="magicLinkButton" type="button">Entrar por link de e-mail</button>
+            <span>Use seu usuário cadastrado</span>
           </div>
-          <span id="loginStatus" class="hint" aria-live="polite">Use seu e-mail e senha cadastrados.</span>
+          <span id="loginStatus" class="hint" aria-live="polite">Use seu usuário e senha cadastrados.</span>
         </form>
       </section>
 
